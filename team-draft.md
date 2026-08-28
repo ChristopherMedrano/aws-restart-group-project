@@ -36,7 +36,7 @@ We will use three DynamoDB tables.
 | Table | Main information |
 | --- | --- |
 | Users | User ID, display name, email, email preference, creation date |
-| Tasks | Task ID, title, details, due date, creator, assignee, status, timestamps |
+| Tasks | Task ID, title, details, creator, assignee, status, timestamps |
 | Notifications | Notification ID, event ID, task ID, recipient, email result, timestamps |
 
 Task status will be `open` or `complete`. Notification status will be `sent`, `skipped`, or `failed`.
