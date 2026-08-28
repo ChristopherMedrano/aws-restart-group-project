@@ -9,25 +9,33 @@ Teams need a simple way to assign tasks and let people know when a task is assig
 The app uses a small serverless AWS setup:
 
 ```text
-User → Cognito → API Gateway → Task Lambda → DynamoDB
-                                      │
-                                      ▼
-                                     SNS
-                                      │
-                                      ▼
-                         Notification Lambda → SES
-                                      │
-                                      ▼
-                                  DynamoDB
+Browser → CloudFront → private S3 bucket (static frontend)
+   │
+   ├── Cognito (sign-up, sign-in, and JWTs)
+   │      └── Post-confirmation Lambda → Users table
+   │
+   └── API Gateway → Task Lambda → DynamoDB
+                            │
+                            ▼
+                           SNS
+                            │
+                            ▼
+                 Notification Lambda → SES
+                            │
+                            ▼
+                        DynamoDB
 ```
 
+- A private S3 bucket stores the static HTML, CSS, and JavaScript frontend.
+- CloudFront is the required public HTTPS entry point for the frontend and reads the private bucket through Origin Access Control (OAC).
 - Cognito handles sign-up and sign-in.
+- A Cognito Post-confirmation Lambda creates the user's application profile in the Users table.
 - API Gateway receives requests from the web app.
 - The Task Lambda creates tasks and assignments.
 - DynamoDB stores users, tasks, and notification results.
 - SNS sends assignment events to the Notification Lambda.
 - The Notification Lambda checks the user’s preference and sends email through SES when enabled.
-- CloudWatch Logs help us trace requests and troubleshoot problems.
+- CloudWatch Logs for all three Lambdas help us trace requests and troubleshoot problems.
 
 ## Data Model
 
@@ -56,13 +64,13 @@ Task status will be `open` or `complete`. Notification status will be `sent`, `s
 
 | Need | Choice |
 | --- | --- |
-| Frontend | Simple HTML, CSS, and JavaScript |
+| Frontend | HTML, CSS, and JavaScript |
+| Frontend hosting | Private Amazon S3 bucket behind Amazon CloudFront with OAC |
 | Authentication | Amazon Cognito |
 | API | API Gateway HTTP API |
 | Backend | Python on AWS Lambda |
 | Database | Amazon DynamoDB |
 | Events | Amazon SNS |
 | Email | Amazon SES |
-| Logs | Amazon CloudWatch |
+| Logs | Amazon CloudWatch and free CloudTrail management-event history |
 
-Optional additions, if the MVP is complete, include S3/CloudFront hosting, SQS for additional reliability, and infrastructure as code with SAM, CloudFormation, or Terraform.
