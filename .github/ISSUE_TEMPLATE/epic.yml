@@ -67,8 +67,15 @@ body:
   - type: textarea
     id: dependencies
     attributes:
-      label: Dependencies and risks
-      description: Link dependencies and risk issues. Enter None if there are none.
+      label: Dependencies
+      description: Link prerequisite epics/issues, or enter None.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+      description: Link risk issues, or enter None identified at planning time.
     validations:
       required: true
   - type: textarea

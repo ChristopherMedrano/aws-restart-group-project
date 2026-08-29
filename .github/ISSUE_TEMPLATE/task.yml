@@ -70,6 +70,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+      description: Link risk issues, or enter None identified at planning time.
+    validations:
+      required: true
+  - type: textarea
     id: contract
     attributes:
       label: Contract impact
