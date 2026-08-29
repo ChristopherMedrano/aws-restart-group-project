@@ -8,6 +8,10 @@ Teams need a simple way to assign tasks and let people know when a task is assig
 
 The app uses a small serverless AWS setup:
 
+The S3-and-CloudFront frontend is a required part of the MVP, not an optional
+enhancement. Amazon S3 hosts the static frontend assets in a private bucket, and
+Amazon CloudFront is the application's public HTTPS frontend.
+
 ```text
 Browser → CloudFront → private S3 bucket (static frontend)
    │
@@ -22,6 +26,7 @@ Browser → CloudFront → private S3 bucket (static frontend)
                             ▼
                  Notification Lambda → SES
                             │
+                            ├──────────────→ SQS failure queue (exhausted failures only)
                             ▼
                         DynamoDB
 ```
@@ -45,20 +50,21 @@ We will use three DynamoDB tables.
 | --- | --- |
 | Users | User ID, display name, email, email preference, creation date |
 | Tasks | Task ID, title, details, creator, assignee, status, timestamps |
-| Notifications | Notification ID, event ID, task ID, recipient, email result, timestamps |
+| Notifications | Task ID, recipient, email result, timestamps |
 
-Task status will be `open` or `complete`. Notification status will be `sent`, `skipped`, or `failed`.
+Task status will be `open` or `complete`. Notification status will be `sent`, `skipped`, `failed`, or `unknown`; `unknown` means an email might have been accepted but its final result could not be recorded.
 
 ## Event Flow
 
 1. A signed-in user creates a task and assigns it to another user.
-2. The Task Lambda validates and saves the assignment in DynamoDB.
+2. The browser supplies a UUID task ID; the Task Lambda uses it to make retries idempotent, validates the request, and saves the assignment in DynamoDB.
 3. It publishes a `task.assigned` event to SNS.
 4. SNS triggers the Notification Lambda in the background.
 5. The Notification Lambda checks the assignee’s email setting.
 6. If email is enabled, it sends an email through SES and records the result.
 7. If email is disabled, it records the notification as `skipped`.
-8. If email delivery fails, the task stays assigned and the result is recorded as `failed`.
+8. A confirmed email failure is `failed`; an interrupted, uncertain outcome is `unknown`. The task stays assigned either way.
+9. Exhausted Notification Lambda failures are retained in a separate SQS failure queue and surfaced by CloudWatch alarms; SQS is not part of normal delivery.
 
 ## Technology Choices
 
@@ -71,6 +77,6 @@ Task status will be `open` or `complete`. Notification status will be `sent`, `s
 | Backend | Python on AWS Lambda |
 | Database | Amazon DynamoDB |
 | Events | Amazon SNS |
+| Failure retention | Amazon SQS Standard queue, only after Lambda retries are exhausted |
 | Email | Amazon SES |
 | Logs | Amazon CloudWatch and free CloudTrail management-event history |
-
