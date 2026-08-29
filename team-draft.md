@@ -8,10 +8,6 @@ Teams need a simple way to assign tasks and let people know when a task is assig
 
 The app uses a small serverless AWS setup:
 
-The S3-and-CloudFront frontend is a required part of the MVP, not an optional
-enhancement. Amazon S3 hosts the static frontend assets in a private bucket, and
-Amazon CloudFront is the application's public HTTPS frontend.
-
 ```text
 Browser → CloudFront → private S3 bucket (static frontend)
    │
