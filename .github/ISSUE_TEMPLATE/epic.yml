@@ -13,34 +13,12 @@ body:
 
         **Labels for this form:** `type:epic` is added automatically. Add exactly one area from `area:project`, `area:platform`, `area:iam`, `area:identity`, `area:api`, `area:data`, `area:task-api`, `area:notification`, `area:messaging`, `area:frontend`, `area:frontend-hosting`, `area:qa`, `area:operations`, `area:release`, or `area:demo`, plus `priority:p0`. Add `blocked` or `risk` only when applicable. `stretch` is not valid for a planned weekly epic.
 
-        **After creating:** assign the named epic assignee in GitHub; set the matching milestone; add the issue to the GitHub Project and set Status, Week, Epic, Area, Priority, and Evidence. As each child issue is created, set its built-in **Parent issue** relationship to this epic (a `#123` reference alone is not sufficient).
-  - type: input
-    id: epic_assignee
-    attributes:
-      label: Epic assignee
-      description: Use the accountable delivery lead's actual GitHub username.
-      placeholder: "@username"
-    validations:
-      required: true
-  - type: input
-    id: milestone
-    attributes:
-      label: Milestone
-      description: Use the matching Week 1–6 milestone name from the canonical backlog.
-    validations:
-      required: true
+        **After creating:** use the matching canonical epic to set the GitHub assignee, milestone, labels, and Project fields. As each child issue is created, set its built-in **Parent issue** relationship to this epic (a `#123` reference alone is not sufficient).
   - type: input
     id: exit_gate
     attributes:
       label: Exit gate
       description: Name the gate or demonstrable weekly outcome that must be accepted.
-    validations:
-      required: true
-  - type: textarea
-    id: planned_labels
-    attributes:
-      label: Planned labels and project fields
-      description: Copy the canonical labels and record Week, Epic, Area, and Priority values to set after creation.
     validations:
       required: true
   - type: input
