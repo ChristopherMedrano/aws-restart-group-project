@@ -2,6 +2,14 @@ name: Delivery task
 description: Create an owned, testable child issue under a weekly epic.
 title: "[Task] "
 body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before creating:** synchronize `.github/labels.yml` into the target repository. If a canonical label is missing, create it with its exact name, color, and description from that file; do not invent a replacement label.
+
+        **Labels for this form:** apply exactly one delivery type from `type:feature`, `type:infra`, `type:test`, `type:docs`, `type:security`, `type:architecture`, `type:release`, `type:hardening`, `type:operations`, `type:accessibility`, `type:design`, `type:governance`, `type:observability`, or `type:project`; exactly one area from `area:project`, `area:platform`, `area:iam`, `area:identity`, `area:api`, `area:data`, `area:task-api`, `area:notification`, `area:messaging`, `area:frontend`, `area:frontend-hosting`, `area:qa`, `area:operations`, `area:release`, or `area:demo`; and one of `priority:p0`, `priority:p1`, or `priority:p2`. Add `blocked`, `risk`, or `stretch` only when the canonical backlog allows it.
+
+        **After creating:** assign the named user in GitHub; apply the selected labels; set the matching milestone; add the issue to the GitHub Project and set Status, Week, Epic, Area, Priority, and Evidence; then set the built-in **Parent issue** relationship to the linked epic. A `#123` reference in the body does not create that relationship.
   - type: input
     id: outcome
     attributes:
@@ -10,10 +18,33 @@ body:
     validations:
       required: true
   - type: input
+    id: assignee
+    attributes:
+      label: Assignee
+      description: Use the primary owner's actual GitHub username; also assign the issue in GitHub after creation.
+      placeholder: "@username"
+    validations:
+      required: true
+  - type: input
     id: parent
     attributes:
       label: Parent epic
       placeholder: "#123"
+    validations:
+      required: true
+  - type: input
+    id: milestone_and_gate
+    attributes:
+      label: Milestone and acceptance coverage
+      description: Name the matching Week milestone and target gate or acceptance IDs.
+      placeholder: "Week 2 — Shared AWS and Application Foundations; Gate 2, MP-AC-…"
+    validations:
+      required: true
+  - type: textarea
+    id: planned_labels
+    attributes:
+      label: Planned labels and project fields
+      description: Copy the canonical labels and record Week, Epic, Area, and Priority values to set after creation.
     validations:
       required: true
   - type: input

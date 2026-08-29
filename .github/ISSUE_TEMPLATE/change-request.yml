@@ -5,6 +5,44 @@ labels:
   - "type:change-request"
   - "area:project"
 body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before creating:** synchronize `.github/labels.yml` into the target repository. If a canonical label is missing, create it with its exact name, color, and description from that file; do not invent a replacement label.
+
+        **Labels for this form:** `type:change-request` and `area:project` are added automatically. Add every additional affected area from `area:platform`, `area:iam`, `area:identity`, `area:api`, `area:data`, `area:task-api`, `area:notification`, `area:messaging`, `area:frontend`, `area:frontend-hosting`, `area:qa`, `area:operations`, `area:release`, or `area:demo`, plus one of `priority:p0`, `priority:p1`, or `priority:p2`; add `blocked` or `risk` only when applicable.
+
+        **After creating:** assign the named owner in GitHub; apply the selected labels; set the affected milestone; add the issue to the GitHub Project and set Status, Week, Epic, Area, Priority, and Evidence. If an epic was supplied below, set the built-in **Parent issue** relationship to it; a `#123` reference alone does not create that relationship.
+  - type: input
+    id: assignee
+    attributes:
+      label: Assignee
+      description: Use the proposed owner's actual GitHub username; also assign the issue in GitHub after creation.
+      placeholder: "@username"
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: Parent epic
+      description: Link the affected weekly epic, or enter None when no active delivery epic applies.
+      placeholder: "#123 or None"
+    validations:
+      required: true
+  - type: input
+    id: collaborators
+    attributes:
+      label: Collaborators and reviewers
+      description: Use actual GitHub usernames; include affected implementation owners and Gokila.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link prerequisite issues, decisions, or contracts, or enter None.
+    validations:
+      required: true
   - type: textarea
     id: reason
     attributes:
@@ -17,18 +55,22 @@ body:
       label: Changed requirement and owning document
     validations:
       required: true
-  - type: checkboxes
+  - type: dropdown
     id: impact
     attributes:
       label: Affected artifacts
+      description: Select every affected artifact; at least one is required.
+      multiple: true
       options:
-        - label: Frontend
-        - label: Backend/API
-        - label: Infrastructure/IAM
-        - label: Data/event contracts
-        - label: QA/evidence
-        - label: Security/operations
-        - label: Scope/schedule/demo
+        - Frontend
+        - Backend/API
+        - Infrastructure/IAM
+        - Data/event contracts
+        - QA/evidence
+        - Security/operations
+        - Scope/schedule/demo
+    validations:
+      required: true
   - type: textarea
     id: compatibility
     attributes:
@@ -46,6 +88,13 @@ body:
     id: tests
     attributes:
       label: New or changed tests
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance conditions and evidence
+      description: State testable approval conditions and link the PR, test report, deployment/build record, and safe logs or screenshots.
     validations:
       required: true
   - type: textarea
