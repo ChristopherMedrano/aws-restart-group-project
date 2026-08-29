@@ -1,0 +1,54 @@
+name: Delivery task
+description: Create an owned, testable child issue under a weekly epic.
+title: "[Task] "
+body:
+  - type: input
+    id: outcome
+    attributes:
+      label: Outcome
+      description: Describe the result, not merely the activity.
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: Parent epic
+      placeholder: "#123"
+    validations:
+      required: true
+  - type: input
+    id: collaborators
+    attributes:
+      label: Collaborators and reviewers
+      description: Use actual GitHub usernames.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance conditions
+      description: Use observable results and include relevant acceptance IDs.
+      placeholder: "- [ ] Observable condition\n- [ ] Test/evidence condition"
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link prerequisite issues/contracts or enter None.
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Contract impact
+      description: Name the owning specification/section and link a change issue when the approved contract must change.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence plan
+      description: Name the PR, test report, deployment/build record, and safe logs or screenshots that prove completion.
+    validations:
+      required: true

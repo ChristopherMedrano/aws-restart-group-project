@@ -1,0 +1,44 @@
+name: Defect
+description: Report verified behavior that differs from an approved contract.
+title: "[Bug] "
+labels:
+  - "type:bug"
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: Remove tokens, credentials, personal data, and sensitive payloads.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior and contract
+      description: Cite the governing section or acceptance ID.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Safe reproduction steps
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment and build/version
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Gate impact
+      options: [Blocks current gate, Threatens current gate, Does not block current gate, Unknown]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Link safe logs, test output, or screenshots and include taskId only when appropriate.

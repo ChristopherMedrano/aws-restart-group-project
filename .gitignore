@@ -1,1 +1,4 @@
-.private/
+CONTEXT.md
+*.txt
+!requirements.txt
+!requirements-dev.txt

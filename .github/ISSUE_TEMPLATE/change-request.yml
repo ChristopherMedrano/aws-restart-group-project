@@ -1,0 +1,57 @@
+name: Contract or scope change
+description: Propose a controlled change to behavior, architecture, scope, or schedule.
+title: "[Change] "
+labels:
+  - "type:change-request"
+  - "area:project"
+body:
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason and proposed owner
+    validations:
+      required: true
+  - type: textarea
+    id: requirement
+    attributes:
+      label: Changed requirement and owning document
+    validations:
+      required: true
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Affected artifacts
+      options:
+        - label: Frontend
+        - label: Backend/API
+        - label: Infrastructure/IAM
+        - label: Data/event contracts
+        - label: QA/evidence
+        - label: Security/operations
+        - label: Scope/schedule/demo
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility, migration, redeployment, and rollback impact
+    validations:
+      required: true
+  - type: textarea
+    id: cost
+    attributes:
+      label: Cost and account impact
+      description: Enter None with rationale if there is no impact.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: New or changed tests
+    validations:
+      required: true
+  - type: textarea
+    id: approvals
+    attributes:
+      label: Required approvals
+      description: Record Ruthvik, Chris, affected implementation owner, and Gokila decisions as applicable.
+    validations:
+      required: true

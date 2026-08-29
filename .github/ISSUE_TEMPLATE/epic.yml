@@ -1,0 +1,44 @@
+name: Weekly delivery epic
+description: Track one approved weekly outcome and its gate decision.
+title: "[Epic] Week N — "
+labels:
+  - "type:epic"
+body:
+  - type: markdown
+    attributes:
+      value: Use the matching canonical body from the planning repository's `.github/planning/epics-and-issues.md` for one of the six planned epics.
+  - type: input
+    id: outcome
+    attributes:
+      label: Required outcome
+      description: State the demonstrable end-of-week result.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Copy the objective epic acceptance criteria from the canonical backlog.
+    validations:
+      required: true
+  - type: textarea
+    id: children
+    attributes:
+      label: Child issues
+      description: Link owned deliverable issues or create a task list.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and risks
+      description: Link dependencies and risk issues. Enter None if there are none.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Gate evidence and decision
+      description: Gokila links evidence; Ruthvik records the accepted/not accepted decision.
+    validations:
+      required: true
