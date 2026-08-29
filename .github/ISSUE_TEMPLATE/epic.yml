@@ -15,13 +15,6 @@ body:
 
         **After creating:** use the matching canonical epic to set the GitHub assignee, milestone, labels, and Project fields. As each child issue is created, set its built-in **Parent issue** relationship to this epic (a `#123` reference alone is not sufficient).
   - type: input
-    id: exit_gate
-    attributes:
-      label: Exit gate
-      description: Name the gate or demonstrable weekly outcome that must be accepted.
-    validations:
-      required: true
-  - type: input
     id: outcome
     attributes:
       label: Required outcome
@@ -54,6 +47,13 @@ body:
     attributes:
       label: Risks
       description: Link risk issues, or enter None identified at planning time.
+    validations:
+      required: true
+  - type: input
+    id: exit_gate
+    attributes:
+      label: Exit gate
+      description: Name the gate or demonstrable weekly outcome that must be accepted.
     validations:
       required: true
   - type: textarea
