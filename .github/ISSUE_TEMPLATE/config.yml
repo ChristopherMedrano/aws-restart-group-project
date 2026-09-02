@@ -1,1 +1,5 @@
 blank_issues_enabled: false
+contact_links:
+  - name: Contract change
+    url: ../blob/main/docs/project/change-control.md
+    about: Review change-control requirements before opening a contract-changing issue.

@@ -1,15 +1,15 @@
 name: Defect
 description: Report verified behavior that differs from an approved contract.
-title: "[Bug] "
+title: "[Defect] "
 labels:
-  - "type:bug"
+  - "type:defect"
 body:
   - type: markdown
     attributes:
       value: |
         **Before creating:** synchronize `.github/labels.yml` into the target repository. If a canonical label is missing, create it with its exact name, color, and description from that file; do not invent a replacement label.
 
-        **Labels for this form:** `type:bug` is added automatically. Add exactly one affected area from `area:project`, `area:platform`, `area:iam`, `area:identity`, `area:api`, `area:data`, `area:task-api`, `area:notification`, `area:messaging`, `area:frontend`, `area:frontend-hosting`, `area:qa`, `area:operations`, `area:release`, or `area:demo`, plus one of `priority:p0`, `priority:p1`, or `priority:p2`; add `blocked` or `risk` only when applicable.
+        **Labels for this form:** `type:defect` is added automatically. Add exactly one affected area from `area:project`, `area:platform`, `area:iam`, `area:identity`, `area:api`, `area:data`, `area:task-api`, `area:notification`, `area:messaging`, `area:frontend`, `area:frontend-hosting`, `area:qa`, `area:operations`, `area:release`, or `area:demo`, plus one of `priority:p0`, `priority:p1`, or `priority:p2`; add `blocked` or `risk` only when applicable.
 
         **After creating:** set the GitHub assignee, milestone, labels, and Project fields for the affected work. If an epic was supplied below, set the built-in **Parent issue** relationship to it; a `#123` reference alone does not create that relationship.
   - type: input

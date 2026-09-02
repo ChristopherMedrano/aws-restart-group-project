@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Copy the matching canonical epic from the planning repository's `.github/planning/epics-and-issues.md`.
+        Copy the matching canonical epic from `docs/project/SHARED_TASK_NOTIFICATIONS_GITHUB_EPICS_AND_ISSUES.md`.
 
         **Before creating:** synchronize `.github/labels.yml` into the target repository. If a canonical label is missing, create it with its exact name, color, and description from that file; do not invent a replacement label.
 

@@ -9,7 +9,7 @@ body:
 
         **Labels for this form:** apply exactly one delivery type from `type:feature`, `type:infra`, `type:test`, `type:docs`, `type:security`, `type:architecture`, `type:release`, `type:hardening`, `type:operations`, `type:accessibility`, `type:design`, `type:governance`, `type:observability`, or `type:project`; exactly one area from `area:project`, `area:platform`, `area:iam`, `area:identity`, `area:api`, `area:data`, `area:task-api`, `area:notification`, `area:messaging`, `area:frontend`, `area:frontend-hosting`, `area:qa`, `area:operations`, `area:release`, or `area:demo`; and one of `priority:p0`, `priority:p1`, or `priority:p2`. Add `blocked`, `risk`, or `stretch` only when the canonical backlog allows it.
 
-        **After creating:** use the matching canonical issue to set the GitHub assignee, milestone, labels, and Project fields; then set the built-in **Parent issue** relationship to the linked epic. A `#123` reference in the body does not create that relationship.
+        **Canonical backlog:** use the matching issue in `docs/project/SHARED_TASK_NOTIFICATIONS_GITHUB_EPICS_AND_ISSUES.md` to set the GitHub assignee, milestone, labels, and Project fields; then set the built-in **Parent issue** relationship to the linked epic. A `#123` reference in the body does not create that relationship.
   - type: input
     id: outcome
     attributes:
