@@ -1,4 +1,5 @@
 CONTEXT.md
+_planning/
 *.txt
 !requirements.txt
 !requirements-dev.txt
