@@ -37,14 +37,6 @@ Use the relevant GitHub issue for decisions, blockers, evidence, and handoff
 notes. Raise a change request before changing an approved API, architecture,
 scope, security control, or schedule commitment.
 
-## Team-friendly communication
-
-Keep issues, pull requests, project docs, and team comments business casual and
-easy to follow. Use clear, direct wording that fits a college or coding-bootcamp
-team; avoid stiff corporate language, but keep technical requirements precise.
-Be respectful, explain decisions and blockers plainly, and ask for clarification
-when a handoff is unclear.
-
 ## Blocker escalation
 
 Record the blocker on the affected issue immediately, including owner, impact,
