@@ -44,11 +44,11 @@ This is an AWS re/Start group project. The team is building the first version wi
 
 | Team member | Primary role | Secondary role |
 | --- | --- | --- |
-| Ruthvik | Project Manager | Junior Cloud Engineer |
-| Chris | Cloud Infrastructure Architect | Business Analyst |
-| Noor | Frontend Developer | Junior Cloud Engineer |
-| Duke | Backend Developer | Junior Cloud Engineer |
-| Gokila | Quality Assurance and Testing Lead | Junior Cloud Engineer |
+| Ruthvik | Project Manager | Junior Cloud Engineer | SNS, SES, Lambda(notification)
+| Chris | Cloud Infrastructure Architect | Business Analyst | IAM, Cognito, API Gateway
+| Noor | Frontend Developer | Junior Cloud Engineer | S3, CloudFront, HTML, CSS, Javascript
+| Duke | Backend Developer | Junior Cloud Engineer | DynamoDB, Lambda(Task)
+| Gokila | Quality Assurance and Testing Lead | Junior Cloud Engineer | CloudWatch
 
 ## For contributors
 
