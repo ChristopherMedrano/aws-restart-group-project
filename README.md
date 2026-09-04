@@ -42,8 +42,8 @@ This is an AWS re/Start group project. The team is building the first version wi
 
 ## Team
 
-| Team member | Primary role | Secondary role |
-| --- | --- | --- |
+| Team member | Primary role | Secondary role | AWS Services
+| --- | --- | --- | --- |
 | Ruthvik | Project Manager | Junior Cloud Engineer | SNS, SES, Lambda(notification)
 | Chris | Cloud Infrastructure Architect | Business Analyst | IAM, Cognito, API Gateway
 | Noor | Frontend Developer | Junior Cloud Engineer | S3, CloudFront, HTML, CSS, Javascript
