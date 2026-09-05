@@ -10,18 +10,29 @@ Build one piece at a time and test it in the browser before starting the next pi
 - [ ] Make the navigation work on small (phone/tablet) screens too. 
 - [ ] Add a landing page with the app name, a one-sentence explanation, and a **Register or sign in** button.
 
-## 2. Create the pages
+## 2. Create routes and recovery states
 
-Build these pages. Use the route names if the app has routing.
+Build these SPA routes. Use the route names if the app has routing.
 
 | Page | Route | What the user needs to do |
 | --- | --- | --- |
+| Landing and Sign In | `/` | Show the app name, a short explanation, and **Register or sign in**. Redirect signed-in users to Assigned Tasks. |
+| Sign-In Callback | `/callback` | Finish the Cognito sign-in return, then redirect to a safe signed-in route. Never show a code or token. |
 | Assigned Tasks | `/tasks/assigned` | See tasks assigned to them and mark an open task complete. |
 | Created Tasks | `/tasks/created` | See tasks they created and check the notification result. |
 | Create Task | `/tasks/new` | Create a task and choose who receives it. |
 | Notifications | `/notifications` | See the history of notification results. |
 | Profile | `/profile` | Change display name and email-notification preference. |
 | Not Found | any unknown route | Show a helpful message and a link back to Assigned Tasks. |
+
+Also build these in-app recovery states. They are frontend-owned screens, not
+separate normal routes and not Cognito-hosted pages.
+
+| Recovery state | Trigger | What the user needs to do |
+| --- | --- | --- |
+| Missing Profile | A valid sign-in succeeds but the app profile is unavailable. | Show safe help with **Try again** and **Sign out**. |
+| Session Expired | A protected request returns `401`. | Explain that the session expired and offer **Sign in**. |
+| Configuration Error | Required runtime configuration is missing or invalid. | Show deployment-support guidance and block API/auth actions. |
 
 ## 3. Build the task lists
 
