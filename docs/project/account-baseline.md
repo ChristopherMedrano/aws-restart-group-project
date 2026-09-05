@@ -37,11 +37,16 @@ Regional observations cover `us-east-1` unless explicitly stated.
 | CloudWatch | 0 alarms, 0 log groups; 0 custom dashboards | Alarms/logs checked regionally; dashboard list checked |
 | IAM | 0 users, 0 groups, 4 service-linked roles, 0 customer-managed policies, 0 identity providers | No project-specific roles found |
 | CloudFormation | 0 active stacks | Active filter excludes deleted history; deployment untested |
-| SAM toolchain | `sam` not found on local PATH | Resolve under E1-I03 before deployment |
+| SAM toolchain | SAM CLI 1.166.1 installed and available on local PATH | Ready for SAM build/deploy work |
 
 IAM dashboard confirms root MFA is enabled and root has no active access keys.
 The four existing roles serve CloudFront logging, Resource Explorer, Support,
 and Trusted Advisor. Named project access is not yet established or tested.
+
+## Blocked services and actions
+
+None. Service provisioning and application integration checks are implementation
+work and do not block this account-readiness record.
 
 ### Existing S3 and CloudFront usage
 
