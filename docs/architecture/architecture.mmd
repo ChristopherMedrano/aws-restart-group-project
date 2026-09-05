@@ -1,0 +1,62 @@
+flowchart LR
+  B[Browser SPA]
+
+  subgraph frontend[Frontend delivery]
+    CF[CloudFront<br/>HTTPS, SPA fallback, security headers]
+    S3[(Private S3<br/>static SPA assets)]
+    CF -->|OAC-signed origin read| S3
+  end
+
+  subgraph identity[Identity]
+    C[Cognito User Pool<br/>managed pages + PKCE]
+    PC[Post-confirmation Lambda]
+    C -->|verified claims| PC
+  end
+
+  subgraph application[Application and data]
+    API[API Gateway HTTP API<br/>JWT validation + CORS]
+    TA[Task API Lambda]
+    U[(Users table<br/>directory GSI)]
+    T[(Tasks table<br/>taskId + creator/assignee GSIs)]
+    N[(Notifications table<br/>history GSI)]
+    API --> TA
+    PC -->|create profile| U
+    TA --> U
+    TA --> T
+    TA -->|authorized reads| N
+  end
+
+  subgraph notifications[Notifications and failure retention]
+    SNS[SNS assignment topic<br/>task.assigned]
+    NL[Notification Lambda]
+    SES[SES]
+    Q2[SNS-delivery failure<br/>SQS queue]
+    Q1[Lambda-invocation failure<br/>SQS queue]
+    SNS -->|asynchronous delivery| NL
+    SNS -. undeliverable subscription .-> Q2
+    NL -->|validate, claim, and record outcome| U
+    NL -->|validate task| T
+    NL -->|owns notification outcome| N
+    NL -->|one send attempt at most| SES
+    NL -. exhausted async invocation .-> Q1
+  end
+
+  subgraph observability[Observability]
+    CW[CloudWatch Logs, metrics, and alarms]
+    OA[SNS operations-alert topic]
+    DB[Project dashboard]
+    CW -->|alarm notifications| OA
+    CW --> DB
+  end
+
+  B -->|HTTPS| CF
+  B -->|authorization code + PKCE| C
+  B -->|JWT-authorized request| API
+  TA -->|publish task.assigned with taskId<br/>after durable task| SNS
+  TA --> CW
+  PC --> CW
+  NL --> CW
+  API --> CW
+  SNS --> CW
+  Q1 --> CW
+  Q2 --> CW
