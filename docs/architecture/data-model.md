@@ -1,8 +1,5 @@
 # S3NT: DynamoDB Data Model Template
 
-**Owner:** Duke
-**Purpose:** Complete this document before creating DynamoDB resources.
-
 Use the [backend build checklist](../specs/S3NT_BACKEND_SPEC.md) and the
 [approved architecture](architecture.md). Do not add MVP features or change
 the API contract while filling this out.
