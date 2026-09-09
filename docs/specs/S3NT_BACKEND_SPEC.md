@@ -33,11 +33,11 @@ JSON.
 | `PATCH /me` | `{"displayName":"...","emailNotificationsEnabled":true}`; either field may be sent | `200 {"user": user}` | Signed-in user; their own profile only. |
 | `GET /assignees` | No body or query parameters. The required Cognito bearer token authorizes the caller. | `200 {"assignees":[{"userId":"...","displayName":"..."}]}` | Any signed-in user. |
 | `POST /tasks` | `{"taskId":"uuid-v4","title":"...","description":"...","assigneeId":"..."}` | `201 {"task": task}`; `200` for an identical retry | Any signed-in user; caller becomes creator. |
-| `GET /tasks?role=assigned` | Query `role=assigned` | `200 {"tasks":[...]}` | Signed-in user; only their assigned tasks. |
-| `GET /tasks?role=created` | Query `role=created` | `200 {"tasks":[...]}` | Signed-in user; only their created tasks. |
+| `GET /tasks?role=assigned` | Required query `role=assigned`; optional `limit` and opaque `nextToken` | `200 {"tasks":[...],"nextToken":"..."}`; omit `nextToken` when there is no next page | Signed-in user; only their assigned tasks. |
+| `GET /tasks?role=created` | Required query `role=created`; optional `limit` and opaque `nextToken` | `200 {"tasks":[...],"nextToken":"..."}`; omit `nextToken` when there is no next page | Signed-in user; only their created tasks. |
 | `PATCH /tasks/{taskId}/status` | `{"status":"complete"}` | `200 {"task": task}` | Task assignee only. |
 | `GET /tasks/{taskId}/notification` | No body or query parameters. `taskId` is in the path; the required Cognito bearer token identifies the caller. | `200 {"notification": notification-or-null}` | Task creator or assignee only. |
-| `GET /notifications` | No body or query parameters. The required Cognito bearer token identifies the caller. | `200 {"notifications":[...]}` | Signed-in user; only their notification history. |
+| `GET /notifications` | Optional `limit` and opaque `nextToken`. The required Cognito bearer token identifies the caller. | `200 {"notifications":[...],"nextToken":"..."}`; omit `nextToken` when there is no next page | Signed-in user; only their notification history. |
 
 Use `400` for invalid input, `401` for a missing or invalid token, `403` for
 an unauthorized task action, and `404` for a missing task, user, or profile.
@@ -63,7 +63,9 @@ an unauthorized task action, and `404` for a missing task, user, or profile.
 
 - [ ] Add `GET /tasks?role=assigned` for tasks assigned to the caller.
 - [ ] Add `GET /tasks?role=created` for tasks created by the caller.
-- [ ] Return newest tasks first as `{"tasks": [...]}`.
+- [ ] Return newest tasks first. Support pagination with an optional `limit` and
+  an opaque `nextToken`; return `nextToken` only when another page is available.
+  Do not let the client construct, inspect, or modify a token.
 - [ ] Add `PATCH /tasks/{taskId}/status` and accept only
   `{"status":"complete"}`.
 - [ ] Allow only the task assignee to complete a task. Set `completedAt` when
@@ -83,8 +85,9 @@ an unauthorized task action, and `404` for a missing task, user, or profile.
   request and task ID.
 - [ ] Add `GET /tasks/{taskId}/notification`. Let only the task creator or
   assignee read it. Return `{"notification": null}` while it is processing.
-- [ ] Add `GET /notifications` for the caller's notification history. Do not
-  include task titles in this response.
+- [ ] Add `GET /notifications` for the caller's notification history with the
+  same opaque-pagination behavior as task lists. Do not include task titles in
+  this response.
 
 ## 6. Protect the API
 

@@ -1,10 +1,11 @@
-# Shared Task Notifications
+# S3NT - Share Tasks. Send Simple Notifications
 
-Shared Task Notifications is a simple web app for small groups that need to assign work and keep everyone informed.
+S3NT is a simple web app for small groups that need to assign work and keep everyone informed.
 
-## What the app does
 
-After creating an account, a person can:
+## Planned app behavior
+
+After creating an account, a person will be able to:
 
 - Create a task with a title and details.
 - Assign that task to another registered person.
@@ -38,18 +39,62 @@ Users sign in before viewing or changing tasks. Each person can update only thei
 
 ## Project status
 
-This is an AWS re/Start group project. The team is building the first version with a simple web interface, secure sign-in, task storage, and email notifications.
+This is an AWS re/Start group project. The team has completed the initial
+planning and architecture baseline and is moving into shared AWS and
+application foundations. The deployed application is not available yet; the
+root `backend/` and `frontend/` directories currently contain structure
+markers, not the completed application.
+
+## Reference architecture diagram
+
+> This is a simplified reference diagram. The approved detailed architecture
+> plan is maintained in [architecture.md](docs/architecture/architecture.md).
+
+```text
+Browser
+  |-- CloudFront (HTTPS, SPA fallback, security headers)
+  |     `-- private S3 bucket (OAC-only static assets)
+  |
+  |-- Cognito managed pages (authorization code + PKCE)
+  |     `-- Post-confirmation Lambda --> Users table
+  |
+  `-- API Gateway HTTP API (JWT + exact CORS)
+        `-- Task API Lambda
+              |-- Users table / directory GSI
+              |-- Tasks table / creator and assignee GSIs
+              |-- Notifications table (authorized reads)
+              `-- SNS assignment topic
+                    |-- Notification Lambda
+                    |     |-- Users, Tasks, and Notifications tables
+                    |     `-- SES (one send attempt at most)
+                    |
+                    `-- SNS-delivery failure SQS queue
+
+Notification Lambda exhausted asynchronous invocation
+  `-- Lambda-invocation failure SQS queue
+
+Lambdas and managed services --> CloudWatch logs, metrics, alarms,
+                              operations-alert topic, and project dashboard
+```
 
 ## Team
 
-| Team member | Primary role | Secondary role | AWS Services
+| Team member | Primary role | Secondary role | Assigned AWS-service ownership |
 | --- | --- | --- | --- |
-| Ruthvik | Project Manager | Junior Cloud Engineer | SNS, SES, Lambda(notification)
-| Chris | Cloud Infrastructure Architect | Business Analyst | IAM, Cognito, API Gateway
-| Noor | Frontend Developer | Junior Cloud Engineer | S3, CloudFront, HTML, CSS, Javascript
-| Duke | Backend Developer | Junior Cloud Engineer | DynamoDB, Lambda(Task)
-| Gokila | Quality Assurance and Testing Lead | Junior Cloud Engineer | CloudWatch
+| Ruthvik | Project Manager | Junior Cloud Engineer | SNS, SES, Lambda(notification) |
+| Chris | Cloud Infrastructure Architect | Business Analyst | IAM, Cognito, API Gateway |
+| Noor | Frontend Developer | Junior Cloud Engineer | S3, CloudFront |
+| Duke | Backend Developer | Junior Cloud Engineer | DynamoDB, Lambda(Task) |
+| Gokila | Quality Assurance and Testing Lead | Junior Cloud Engineer | CloudWatch |
+
+AWS configuration is completed as a group. Each team member owns the assigned
+service area: learns its role and key settings, participates in the group
+walkthrough, records configuration evidence, and handles first-line questions.
+Chris retains responsibility for cross-service architecture, security-sensitive
+decisions, and final review.
 
 ## For contributors
 
-Project planning notes are in [team-draft.md](team-draft.md).
+[working agreement](docs/project/working-agreement.md),
+[AWS account baseline](docs/project/account-baseline.md),
+[approved architecture](docs/architecture/architecture.md), [GitHub issue tracker](https://github.com/ChristopherMedrano/aws-restart-group-project/issues).

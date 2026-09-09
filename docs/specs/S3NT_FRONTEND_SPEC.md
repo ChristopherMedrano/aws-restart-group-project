@@ -43,7 +43,9 @@ separate normal routes and not Cognito-hosted pages.
 - [ ] Show these empty messages:
   - Assigned: **No tasks are currently assigned to you.**
   - Created: **You have not created any tasks yet.**
-- [ ] Add **Load more** when the API sends another page of results.
+- [ ] Add **Load more** when the API returns `nextToken`. Send that opaque token
+  unchanged in the next request, append the returned items, and hide **Load
+  more** when `nextToken` is absent.
 - [ ] On Assigned Tasks, add **Mark complete** for open tasks. Send
   `PATCH /tasks/{taskId}/status` with `{"status":"complete"}`.
 - [ ] While a task is being completed, disable its button. Then update that card
@@ -57,22 +59,31 @@ separate normal routes and not Cognito-hosted pages.
 - [ ] Use a dropdown for the assignee. Add **Assign to myself** to select the
   current user quickly.
 - [ ] Require a title, description, and assignee before sending the form.
-- [ ] Do not allow a title or description made only of spaces or blank lines.
+- [ ] Match backend validation: title is 1–140 UTF-8 bytes and description is
+  1–4,000 UTF-8 bytes. Do not allow title or description values made only of
+  spaces or blank lines, and reject carriage returns (`\r`).
 - [ ] Show **Description is required.** under the description field.
 - [ ] Show a live counter under Description, for example
   `1,248 / 4,000 characters`. Calculate the limit with UTF-8 bytes, not only
   JavaScript `text.length`.
 - [ ] Keep the user's text in the form when there is an error.
-- [ ] Create one task ID for a submission. If the user retries the same task,
-  reuse the same task ID and the same values.
+- [ ] Create one canonical lowercase UUID v4 task ID for a submission. If the
+  user retries the same task, reuse the same task ID and the same values.
 - [ ] Send `POST /tasks` with `taskId`, `title`, `description`, and `assigneeId`.
 - [ ] On success, show **Task saved**. Explain that email status may appear a
   little later.
+- [ ] If the API returns `503 EVENT_PUBLISH_FAILED`, keep the same task ID and
+  values. Make only bounded automatic retries, then offer a manual retry with
+  that same immutable request. If the API returns `409`, show a clear conflict
+  message and do not generate a replacement task ID.
 
 ## 5. Show notification results
 
 - [ ] Add **View notification outcome** to task cards.
 - [ ] Load one task's result from `GET /tasks/{taskId}/notification`.
+- [ ] After **Task saved**, poll the task-scoped outcome every two seconds for up
+  to 30 seconds. Then offer manual refresh while keeping **Notification
+  processing** visible until a terminal result is returned.
 - [ ] Use these messages:
 
 | Result | Show this message |
@@ -83,7 +94,9 @@ separate normal routes and not Cognito-hosted pages.
 | `failed` | Email delivery failed; the task remains assigned |
 | `unknown` | Delivery could not be confirmed |
 
-- [ ] Load notification history from `GET /notifications`.
+- [ ] Load notification history from `GET /notifications`. When the API returns
+  `nextToken`, send it back unchanged for **Load more**, append the new items,
+  and hide **Load more** when no token is returned.
 - [ ] For each history item, show a generic **Task assignment** label, email
   result, date, and a short task ID. Do not show the task title in history.
 

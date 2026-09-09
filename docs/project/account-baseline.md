@@ -3,7 +3,8 @@
 **Owner:** Chris
 **Observed:** September 4, 2026 (America/New_York)
 **Issue:** [E1-I02 / #12](https://github.com/ChristopherMedrano/aws-restart-group-project/issues/12)
-**Status:** Evidence consolidated; conditional readiness, review and follow-ups pending.
+**Status:** Deployment Region changed to `us-east-2`; Region-specific readiness
+validation and follow-ups are pending.
 
 ## Account and deployment baseline
 
@@ -12,7 +13,7 @@ The team will use AWS Free plan account.
 
 | Setting | Selected value |
 |---|---|
-| Deployment Region | `us-east-1` (N. Virginia) |
+| Deployment Region | `us-east-2` (Ohio) |
 | Project tag | `S3NT`|
 | Environment tag | `shared-dev` |
 | Stack management tag | `ManagedBy=SAM` |
@@ -21,7 +22,9 @@ The team will use AWS Free plan account.
 
 ## Service access and existing resources
 
-Regional observations cover `us-east-1` unless explicitly stated.
+The observations in this section were collected in `us-east-1` unless
+explicitly stated. They are retained as historical account evidence and must be
+revalidated in the selected deployment Region, `us-east-2`, before deployment.
 
 | Service | Observed evidence | Scope / limitation |
 |---|---|---|
@@ -68,15 +71,3 @@ work and do not block this account-readiness record.
 | SES | 200 emails per 24 hours; 1 email/second | Initial usage was 0; later inbox test is not included in that initial reading |
 | CloudWatch standard alarms | No general count quota appeared in Service Quotas | Plan uses 10 directly referenced standard-resolution alarm metrics |
 | CloudWatch dashboard | No existing custom dashboards | Plan uses 1 dashboard with at most 50 metrics |
-
-## SES readiness and completed checks
-
-- `cthecoder.io` is verified in `us-east-1`, and Easy DKIM is enabled with
-  RSA 2048-bit signing.
-- The three SES DKIM CNAME records were checked in Cloudflare and resolved to
-  the expected SES endpoints.
-- A test Gmail address was verified for SES testing.
-- A test email was sent successfully through the SES simulator, and later
-  `AWS/SES Send` metrics showed activity.
-- SES sandbox mode is still enabled, so all real recipients must be verified
-  before email-enabled QA scenarios.

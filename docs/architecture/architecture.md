@@ -7,45 +7,81 @@
 
 ## Purpose
 
-This is the team's approved plan for the Shared Task Notifications MVP. It puts
+This is the team's approved plan for the S3NT MVP. It puts
 the master plan, backend, frontend, and AWS access specifications in one place
 so everyone can see how the pieces fit together.
 
 ## Diagram
 
-Use the companion [machine-renderable diagram](architecture.mmd) when you need
-the visual view of this design.
+This is the implemented architecture diagram. Direct arrows show the expected
+request or service-invocation path; dotted arrows show failure retention. The
+`taskId` is created by the client, stored with the Task, and included in the
+`task.assigned` event so the Notification Lambda can record one outcome for
+that same task.
 
-In the diagram, direct arrows show the expected request or service invocation
-path. Dotted arrows show a failure-retention path. The `taskId` is created by
-the client, stored with the Task, and included in the `task.assigned` event so
-the Notification Lambda can record one outcome for that same task.
+```mermaid
+flowchart LR
+  B[Browser SPA]
 
-```text
-Browser
-  |-- CloudFront (HTTPS, SPA fallback, security headers)
-  |     `-- private S3 bucket (OAC-only static assets)
-  |
-  |-- Cognito managed pages (authorization code + PKCE)
-  |     `-- Post-confirmation Lambda --> Users table
-  |
-  `-- API Gateway HTTP API (JWT + exact CORS)
-        `-- Task API Lambda
-              |-- Users table / directory GSI
-              |-- Tasks table / creator and assignee GSIs
-              |-- Notifications table (authorized reads)
-              `-- SNS assignment topic
-                    |-- Notification Lambda
-                    |     |-- Users, Tasks, and Notifications tables
-                    |     `-- SES (one send attempt at most)
-                    |
-                    `-- SNS-delivery failure SQS queue
+  subgraph frontend[Frontend delivery]
+    CF[CloudFront<br/>HTTPS, SPA fallback, security headers]
+    S3[(Private S3<br/>static SPA assets)]
+    CF -->|OAC-signed origin read| S3
+  end
 
-Notification Lambda exhausted asynchronous invocation
-  `-- Lambda-invocation failure SQS queue
+  subgraph identity[Identity]
+    C[Cognito User Pool<br/>managed pages + PKCE]
+    PC[Post-confirmation Lambda]
+    C -->|verified claims| PC
+  end
 
-Lambdas and managed services --> CloudWatch logs, metrics, alarms,
-                              operations-alert topic, and project dashboard
+  subgraph application[Application and data]
+    API[API Gateway HTTP API<br/>JWT validation + CORS]
+    TA[Task API Lambda]
+    U[(Users table<br/>directory GSI)]
+    T[(Tasks table<br/>taskId + creator/assignee GSIs)]
+    N[(Notifications table<br/>history GSI)]
+    API --> TA
+    PC -->|create profile| U
+    TA --> U
+    TA --> T
+    TA -->|authorized reads| N
+  end
+
+  subgraph notifications[Notifications and failure retention]
+    SNS[SNS assignment topic<br/>task.assigned]
+    NL[Notification Lambda]
+    SES[SES]
+    Q2[SNS-delivery failure<br/>SQS queue]
+    Q1[Lambda-invocation failure<br/>SQS queue]
+    SNS -->|asynchronous delivery| NL
+    SNS -. undeliverable subscription .-> Q2
+    NL -->|validate, claim, and record outcome| U
+    NL -->|validate task| T
+    NL -->|owns notification outcome| N
+    NL -->|one send attempt at most| SES
+    NL -. exhausted async invocation .-> Q1
+  end
+
+  subgraph observability[Observability]
+    CW[CloudWatch Logs, metrics, and alarms]
+    OA[SNS operations-alert topic]
+    DB[Project dashboard]
+    CW -->|alarm notifications| OA
+    CW --> DB
+  end
+
+  B -->|HTTPS| CF
+  B -->|authorization code + PKCE| C
+  B -->|JWT-authorized request| API
+  TA -->|publish task.assigned with taskId<br/>after durable task| SNS
+  TA --> CW
+  PC --> CW
+  NL --> CW
+  API --> CW
+  SNS --> CW
+  Q1 --> CW
+  Q2 --> CW
 ```
 
 ## Component responsibilities
