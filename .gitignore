@@ -1,2 +1,10 @@
+<<<<<<< HEAD
 .private/
 .vscode/
+=======
+CONTEXT.md
+_planning/
+*.txt
+!requirements.txt
+!requirements-dev.txt
+>>>>>>> master

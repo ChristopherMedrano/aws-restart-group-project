@@ -1,0 +1,69 @@
+name: Delivery task
+description: Create an owned, testable child issue under a weekly epic.
+title: "[Task] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before creating:** synchronize `.github/labels.yml` into the target repository. If a canonical label is missing, create it with its exact name, color, and description from that file; do not invent a replacement label.
+
+        **Labels for this form:** apply exactly one delivery type from `type:feature`, `type:infra`, `type:test`, `type:docs`, `type:security`, `type:architecture`, `type:release`, `type:hardening`, `type:operations`, `type:accessibility`, `type:design`, `type:governance`, `type:observability`, or `type:project`; exactly one area from `area:project`, `area:platform`, `area:iam`, `area:identity`, `area:api`, `area:data`, `area:task-api`, `area:notification`, `area:messaging`, `area:frontend`, `area:frontend-hosting`, `area:qa`, `area:operations`, `area:release`, or `area:demo`; and one of `priority:p0`, `priority:p1`, or `priority:p2`. Add `blocked`, `risk`, or `stretch` only when the canonical backlog allows it.
+
+        **Canonical backlog:** use the matching issue in `docs/project/S3NT_GITHUB_EPICS_AND_ISSUES.md` to set the GitHub assignee, milestone, labels, and Project fields; then set the built-in **Parent issue** relationship to the linked epic. A `#123` reference in the body does not create that relationship.
+  - type: input
+    id: outcome
+    attributes:
+      label: Outcome
+      description: Describe the result, not merely the activity.
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: Parent epic
+      placeholder: "#123"
+    validations:
+      required: true
+  - type: input
+    id: collaborators
+    attributes:
+      label: Collaborators and reviewers
+      description: Use actual GitHub usernames.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance conditions
+      description: Use observable results and include relevant acceptance IDs.
+      placeholder: "- [ ] Observable condition\n- [ ] Test/evidence condition"
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link prerequisite issues/contracts or enter None.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+      description: Link risk issues, or enter None identified at planning time.
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Contract impact
+      description: Name the owning specification/section and link a change issue when the approved contract must change.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence plan
+      description: Name the PR, test report, deployment/build record, and safe logs or screenshots that prove completion.
+    validations:
+      required: true

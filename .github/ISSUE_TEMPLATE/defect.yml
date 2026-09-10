@@ -1,0 +1,83 @@
+name: Defect
+description: Report verified behavior that differs from an approved contract.
+title: "[Defect] "
+labels:
+  - "type:defect"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before creating:** synchronize `.github/labels.yml` into the target repository. If a canonical label is missing, create it with its exact name, color, and description from that file; do not invent a replacement label.
+
+        **Labels for this form:** `type:defect` is added automatically. Add exactly one affected area from `area:project`, `area:platform`, `area:iam`, `area:identity`, `area:api`, `area:data`, `area:task-api`, `area:notification`, `area:messaging`, `area:frontend`, `area:frontend-hosting`, `area:qa`, `area:operations`, `area:release`, or `area:demo`, plus one of `priority:p0`, `priority:p1`, or `priority:p2`; add `blocked` or `risk` only when applicable.
+
+        **After creating:** set the GitHub assignee, milestone, labels, and Project fields for the affected work. If an epic was supplied below, set the built-in **Parent issue** relationship to it; a `#123` reference alone does not create that relationship.
+  - type: input
+    id: parent
+    attributes:
+      label: Parent epic
+      description: Link the affected weekly epic, or enter None when no active delivery epic applies.
+      placeholder: "#123 or None"
+    validations:
+      required: true
+  - type: input
+    id: collaborators
+    attributes:
+      label: Collaborators and reviewers
+      description: Use actual GitHub usernames; include the affected implementation owner and QA reviewer.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link prerequisite issues, contracts, or environments, or enter None.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+      description: Link risk issues, or enter None identified at planning time.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: Remove tokens, credentials, personal data, and sensitive payloads.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior and contract
+      description: Cite the governing section or acceptance ID.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Safe reproduction steps
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment and build/version
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Gate impact
+      options: [Blocks current gate, Threatens current gate, Does not block current gate, Unknown]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Link safe logs, test output, or screenshots and include taskId only when appropriate.
+    validations:
+      required: true
