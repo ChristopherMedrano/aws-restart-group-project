@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assigned Tasks | Shared Tasks</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <a href="dashboard.html" class="logo">Shared Tasks</a>
+
+            <nav class="nav-links">
+                <a href="dashboard.html" class="nav-link active">Assigned Tasks</a>
+                <a href="created-tasks.html" class="nav-link">Created Tasks</a>
+                <a href="#" id="nav-create-task" class="nav-link">Create Task</a>
+                <a href="settings.html" class="nav-link">Settings</a>
+                <button id="logout-button" class="nav-link logout-button" type="button">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+
+        <!-- Dashboard Header -->
+        <section class="dashboard-header">
+            <div>
+                <h1>Welcome back, <span id="user-name">User</span></h1>
+                <p>View tasks assigned to you and mark them complete.</p>
+            </div>
+
+            <button id="create-task-button" class="primary-button" type="button">
+                + Create Task
+            </button>
+        </section>
+
+        <!-- Assigned Tasks -->
+        <section class="tasks-section">
+            <div class="section-header">
+                <div>
+                    <h2>Assigned Tasks</h2>
+                    <p>Tasks that are currently assigned to you.</p>
+                </div>
+            </div>
+
+            <!-- Task Filters -->
+            <div class="task-filters">
+                <button class="filter-button active" data-filter="all" type="button">
+                    All
+                </button>
+
+                <button class="filter-button" data-filter="open" type="button">
+                    Open
+                </button>
+
+                <button class="filter-button" data-filter="complete" type="button">
+                    Completed
+                </button>
+            </div>
+
+            <!-- Task List -->
+            <div id="task-list" class="task-list"></div>
+        </section>
+    </main>
+
+    <!-- Create Task Modal -->
+    <div id="create-task-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2>Create Task</h2>
+                    <p>Create a task and assign it to a team member.</p>
+                </div>
+
+                <button id="close-modal-button" class="close-button" type="button">
+                    &times;
+                </button>
+            </div>
+
+            <form id="create-task-form">
+
+                <!-- Task Title -->
+                <div class="form-group">
+                    <label for="task-title">Title</label>
+                    <input
+                        type="text"
+                        id="task-title"
+                        name="title"
+                        placeholder="Enter task title"
+                    >
+                    <p id="title-error" class="field-error"></p>
+                </div>
+
+                <!-- Task Description -->
+                <div class="form-group">
+                    <label for="task-details">Description</label>
+                    <textarea
+                        id="task-details"
+                        name="description"
+                        rows="6"
+                        placeholder="Describe the task"
+                    ></textarea>
+
+                    <p id="description-error" class="field-error"></p>
+                </div>
+
+                <!-- Assignee -->
+                <div class="form-group">
+                    <label for="assignee">Assignee</label>
+                    <select id="assignee" name="assignee">
+                        <option value="">Select a team member</option>
+                    </select>
+                    <p id="assignee-error" class="field-error"></p>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="modal-actions">
+                    <button
+                        type="button"
+                        id="cancel-task-button"
+                        class="secondary-button"
+                    >
+                        Cancel
+                    </button>
+
+                    <button type="submit" class="primary-button">
+                        Create Task
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

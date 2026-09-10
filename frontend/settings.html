@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Shared Tasks</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <a href="dashboard.html" class="logo">Shared Tasks</a>
+
+            <nav class="nav-links">
+                <a href="dashboard.html" class="nav-link">Assigned Tasks</a>
+                <a href="created-tasks.html" class="nav-link">Created Tasks</a>
+                <a href="settings.html" class="nav-link active">Settings</a>
+                <button id="logout-button" class="nav-link logout-button" type="button">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- =================================
+         Settings
+    ================================= -->
+
+    <main class="settings-container">
+
+        <section class="settings-header">
+            <h1>Settings</h1>
+            <p>Manage your notification preferences.</p>
+        </section>
+
+        <!-- Notification Preferences -->
+
+        <section class="settings-card">
+            <div class="settings-card-header">
+                <div>
+                    <h2>Notification Preferences</h2>
+                    <p>
+                        Choose how you want to be notified
+                        when a task is assigned to you.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Email Notification -->
+
+            <div class="notification-setting">
+                <div class="notification-info">
+                    <h3>Email Notifications</h3>
+                    <p>
+                        Receive an email when a task is
+                        assigned to you.
+                    </p>
+                </div>
+
+                <!-- Toggle -->
+
+                <div class="toggle-container">
+                    <span id="email-notification-status" class="toggle-status">ON</span>
+                    <label class="toggle">
+                        <input
+                            type="checkbox"
+                            id="email-notification-toggle"
+                            aria-label="Enable email notifications"
+                            checked
+                        >
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+
+            <div class="settings-actions">
+                <button
+                    id="save-settings-button"
+                    class="primary-button"
+                    type="button"
+                >
+                    Save Preferences
+                </button>
+            </div>
+        </section>
+
+        <!-- Confirmation Message -->
+
+        <p
+            id="settings-message"
+            class="settings-message"
+            aria-live="polite"
+        ></p>
+
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/settings.js"></script>
+
+</body>
+</html>
