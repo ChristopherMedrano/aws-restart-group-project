@@ -41,9 +41,10 @@ Users sign in before viewing or changing tasks. Each person can update only thei
 
 This is an AWS re/Start group project. The team has completed the initial
 planning and architecture baseline and is moving into shared AWS and
-application foundations. The deployed application is not available yet; the
-root `backend/` and `frontend/` directories currently contain structure
-markers, not the completed application.
+application foundations. Cognito sign-in, the frontend SPA shell, and the
+authenticated `GET /me` foundation are deployed. The `backend/` directory now
+contains the version-controlled Task API Lambda source and its initial tests;
+the remaining backend routes are still planned.
 
 ## Reference architecture diagram
 
