@@ -14,7 +14,7 @@ Build one piece at a time and test each API route before starting the next.
 
 ## 2. Build profile and assignee routes
 
-- [ ] Add `GET /me` to return the signed-in user's profile as `{"user": ...}`.
+- [x] Add `GET /me` to return the signed-in user's profile as `{"user": ...}`.
 - [ ] Add `PATCH /me` to update `displayName` and/or
   `emailNotificationsEnabled`.
 - [ ] Add `GET /assignees` to return registered users as `userId` and
@@ -41,6 +41,15 @@ JSON.
 
 Use `400` for invalid input, `401` for a missing or invalid token, `403` for
 an unauthorized task action, and `404` for a missing task, user, or profile.
+
+### Verified `GET /me` implementation
+
+The deployed Task API Lambda reads `sub` from API Gateway's validated JWT
+claims, performs a consistent `GetItem` from the `Users` table using that value
+as `userId`, and returns `200 {"user": ...}`. Cognito managed login through
+the CloudFront demo has verified this path end to end. The remaining profile,
+assignee, task, and notification checklist items are not implied complete by
+this verification.
 
 ## 3. Create and store tasks
 

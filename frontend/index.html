@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S3NT</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="auth-view" class="auth-container">
+    <section class="auth-card" aria-labelledby="auth-heading">
+      <h1 id="auth-heading">S3NT</h1>
+      <p class="subtitle">Sign in securely to manage shared tasks.</p>
+      <p id="auth-status" role="status" aria-live="polite"></p>
+      <button id="sign-in" type="button" class="auth-submit primary-button">Sign in with Cognito</button>
+      <p class="auth-link">Need an account? Contact an S3NT administrator.</p>
+    </section>
+  </main>
+
+  <div id="app-view" hidden>
+    <header class="navbar">
+      <div class="navbar-container">
+        <a class="logo" href="/tasks/assigned" data-route>S3NT</a>
+        <nav class="nav-links" aria-label="Application navigation">
+          <a class="nav-link" href="/tasks/assigned" data-route>Assigned Tasks</a>
+          <a class="nav-link" href="/tasks/created" data-route>Created Tasks</a>
+          <a class="nav-link" href="/tasks/new" data-route>Create Task</a>
+          <a class="nav-link" href="/notifications" data-route>Notifications</a>
+          <a class="nav-link" href="/profile" data-route>Profile</a>
+          <button id="sign-out" class="nav-link logout-button" type="button">Sign out</button>
+        </nav>
+      </div>
+    </header>
+    <main id="app-content" class="dashboard-container" tabindex="-1"></main>
+  </div>
+
+  <script src="js/auth.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
