@@ -87,43 +87,57 @@ def get_me(user_id):
     return response(200, {"user": profile_from_item(item)})
 
 
-# Stub the future PATCH /me route.
+# TODO: PATCH /me accepts displayName and/or emailNotificationsEnabled.
+# Return: 200 {"user": user} with the updated profile.
+# Security: update only the authenticated caller identified by the JWT sub.
 def update_me(user_id):
     """Stub for the future PATCH /me implementation."""
     return response(501, {"message": "Not implemented"})
 
 
-# Stub the future GET /assignees route.
+# TODO: GET /assignees reads the Users directory GSI.
+# Return: 200 {"assignees": [{"userId": "...", "displayName": "..."}]}.
+# Security: never return email addresses or notification preferences.
 def get_assignees(user_id):
     """Stub for the future GET /assignees implementation."""
     return response(501, {"message": "Not implemented"})
 
 
-# Stub the future POST /tasks route.
+# TODO: POST /tasks accepts taskId, title, description, and assigneeId.
+# Return: 201 {"task": task}, or 200 for an identical retry.
+# Safety: verify the assignee, save the task first, then publish task.assigned.
 def create_task(event, user_id):
     """Stub for the future POST /tasks implementation."""
     return response(501, {"message": "Not implemented"})
 
 
-# Stub the future GET /tasks route.
+# TODO: GET /tasks requires role=assigned or role=created, plus optional pagination.
+# Return: 200 {"tasks": [...], "nextToken": "..."} when another page exists.
+# Security: list only tasks assigned to or created by the authenticated caller.
 def get_tasks(event, user_id):
     """Stub for the future GET /tasks implementation."""
     return response(501, {"message": "Not implemented"})
 
 
-# Stub the future PATCH /tasks/{taskId}/status route.
+# TODO: PATCH /tasks/{taskId}/status accepts only {"status": "complete"}.
+# Return: 200 {"task": task}; a repeated completion returns the same task.
+# Security: only the task assignee may complete the task.
 def update_task_status(event, user_id):
     """Stub for the future PATCH /tasks/{taskId}/status implementation."""
     return response(501, {"message": "Not implemented"})
 
 
-# Stub the future GET /tasks/{taskId}/notification route.
+# TODO: GET /tasks/{taskId}/notification reads the one notification outcome.
+# Return: 200 {"notification": notification-or-null}.
+# Security: only the task creator or assignee may read it.
 def get_task_notification(event, user_id):
     """Stub for the future GET /tasks/{taskId}/notification implementation."""
     return response(501, {"message": "Not implemented"})
 
 
-# Stub the future GET /notifications route.
+# TODO: GET /notifications supports optional opaque pagination.
+# Return: 200 {"notifications": [...], "nextToken": "..."} when another page exists.
+# Security: return only the authenticated caller's history; omit task titles.
 def get_notifications(event, user_id):
     """Stub for the future GET /notifications implementation."""
     return response(501, {"message": "Not implemented"})
