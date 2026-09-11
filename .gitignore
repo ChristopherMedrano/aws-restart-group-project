@@ -1,5 +1,7 @@
 .private/
 .vscode/
+.venv/
+__pycache__/
 CONTEXT.md
 _planning/
 *.txt
