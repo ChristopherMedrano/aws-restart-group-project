@@ -1,8 +1,8 @@
-# Shared Task Notifications — Frontend
+# S3NT — Frontend
 
 ## Overview
 
-**Shared Task Notifications** is a web-based frontend application that allows users to sign in, create and assign tasks to team members, view assigned and created tasks, manage task status, and configure email notification preferences.
+**S3NT** is a web-based frontend application that allows users to sign in, create and assign tasks to team members, view assigned and created tasks, manage task status, and configure email notification preferences.
 
 The application is designed to help small teams organize shared tasks and notify team members when tasks are assigned to them.
 
@@ -231,6 +231,7 @@ Potential future improvements include:
 * Task due dates
 * Calendar integration
 * Advanced task search and filtering
+* Assigned to Myself filter for tasks created and assigned to the current user
 
 These features are outside the current capstone scope.
 
@@ -258,5 +259,3 @@ frontend/
 │
 └── README.md
 ```
-
-

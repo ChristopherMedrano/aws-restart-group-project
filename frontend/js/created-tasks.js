@@ -46,6 +46,12 @@ const taskList = document.getElementById("task-list");
 const createTaskButton = document.getElementById("create-task-button");
 const filterButtons = document.querySelectorAll(".filter-button");
 
+// Load More button.
+const loadMoreButton = document.getElementById("load-more");
+
+// Live region for success and error messages.
+const liveRegion = document.getElementById("live-region");
+
 userNameElement.textContent = currentUser.name;
 
 /* =========================================
@@ -57,9 +63,30 @@ function saveTasks() {
 }
 
 /* =========================================
+   Show Message
+========================================= */
+
+// Show a temporary success or error message.
+function showMessage(message, type) {
+    if (!liveRegion) {
+        return;
+    }
+
+    liveRegion.classList.remove("success-message", "error-message");
+    liveRegion.classList.add(type + "-message");
+    liveRegion.textContent = message;
+
+    setTimeout(function () {
+        liveRegion.textContent = "";
+        liveRegion.classList.remove("success-message", "error-message");
+    }, 3000);
+}
+
+/* =========================================
    Find Team Member
 ========================================= */
 
+// Get a team member's display name from their ID.
 function getTeamMemberName(memberId) {
     const member = teamMembers.find(function (member) {
         return member.id === memberId;
@@ -172,167 +199,239 @@ function getCreatedTasks(filter = "all") {
 }
 
 /* =========================================
+   Load More State
+========================================= */
+
+// Number of tasks shown at one time.
+let visibleCount = 5;
+
+// Remember the currently selected filter.
+let currentFilter = "all";
+
+/* =========================================
    Render Created Tasks
 ========================================= */
 
-function renderTasks(filter = "all") {
-    taskList.innerHTML = "";
+function renderTasks(filter = currentFilter) {
+    currentFilter = filter;
 
-    const createdTasks = getCreatedTasks(filter);
+    // INITIAL LOADING STATE
+    taskList.innerHTML =
+        "<div class='empty-task-message'>Loading…</div>";
 
-    if (createdTasks.length === 0) {
-        const emptyMessage = document.createElement("div");
-
-        emptyMessage.className = "empty-task-message";
-        emptyMessage.textContent = "You have not created any tasks yet.";
-
-        taskList.appendChild(emptyMessage);
-        return;
+    if (loadMoreButton) {
+        loadMoreButton.style.display = "none";
     }
 
-    createdTasks.forEach(function (task) {
-        const taskCard = document.createElement("article");
+    // Small delay to show the loading state.
+    setTimeout(function () {
+        try {
+            const createdTasks = getCreatedTasks(currentFilter);
 
-        taskCard.className = "task-card";
-        taskCard.dataset.status = task.status;
+            // Clear the loading message after tasks are loaded.
+            taskList.innerHTML = "";
 
-        const taskMain = document.createElement("div");
+            // EMPTY LIST
+            if (createdTasks.length === 0) {
+                const emptyMessage = document.createElement("div");
 
-        taskMain.className = "task-card-main";
+                emptyMessage.className = "empty-task-message";
+                emptyMessage.textContent =
+                    "You have not created any tasks yet.";
 
-        const taskHeader = document.createElement("div");
+                taskList.appendChild(emptyMessage);
 
-        taskHeader.className = "task-card-header";
+                if (loadMoreButton) {
+                    loadMoreButton.style.display = "none";
+                }
 
-        const title = document.createElement("h3");
+                return;
+            }
 
-        title.textContent = task.title;
+            // RENDER TASKS
+            createdTasks
+                .slice(0, visibleCount)
+                .forEach(function (task) {
 
-        taskHeader.appendChild(title);
+                    const taskCard = document.createElement("article");
 
-        const taskMenu = document.createElement("div");
+                    taskCard.className = "task-card";
+                    taskCard.dataset.status = task.status;
 
-        taskMenu.className = "task-menu";
+                    const taskMain = document.createElement("div");
 
-        const menuButton = document.createElement("button");
+                    taskMain.className = "task-card-main";
 
-        menuButton.className = "task-menu-button";
-        menuButton.type = "button";
-        menuButton.textContent = "⋮";
+                    const taskHeader = document.createElement("div");
 
-        const menu = document.createElement("div");
+                    taskHeader.className = "task-card-header";
 
-        menu.className = "task-menu-dropdown hidden";
+                    const title = document.createElement("h3");
 
-        const editButton = document.createElement("button");
+                    title.textContent = task.title;
 
-        editButton.type = "button";
-        editButton.textContent = "Edit";
+                    taskHeader.appendChild(title);
 
-        const deleteButton = document.createElement("button");
+                    const taskMenu = document.createElement("div");
 
-        deleteButton.type = "button";
-        deleteButton.textContent = "Delete";
+                    taskMenu.className = "task-menu";
 
-        menu.appendChild(editButton);
-        menu.appendChild(deleteButton);
+                    const menuButton = document.createElement("button");
 
-        taskMenu.appendChild(menuButton);
-        taskMenu.appendChild(menu);
+                    menuButton.className = "task-menu-button";
+                    menuButton.type = "button";
+                    menuButton.textContent = "⋮";
 
-        taskHeader.appendChild(taskMenu);
+                    const menu = document.createElement("div");
 
-        const description = document.createElement("p");
+                    menu.className = "task-menu-dropdown hidden";
 
-        description.className = "task-description";
-        description.textContent = task.description || task.details || "";
+                    const editButton = document.createElement("button");
 
-        const taskDetails = document.createElement("div");
+                    editButton.type = "button";
+                    editButton.textContent = "Edit";
 
-        taskDetails.className = "task-details";
+                    const deleteButton = document.createElement("button");
 
-        const assigneeText = document.createElement("span");
+                    deleteButton.type = "button";
+                    deleteButton.textContent = "Delete";
 
-        assigneeText.textContent = "Assigned to: ";
+                    menu.appendChild(editButton);
+                    menu.appendChild(deleteButton);
 
-        const assigneeName = document.createElement("strong");
+                    taskMenu.appendChild(menuButton);
+                    taskMenu.appendChild(menu);
 
-        assigneeName.textContent = getTeamMemberName(task.assigneeId);
+                    taskHeader.appendChild(taskMenu);
 
-        assigneeText.appendChild(assigneeName);
+                    const description = document.createElement("p");
 
-        taskDetails.appendChild(assigneeText);
+                    description.className = "task-description";
+                    description.textContent =
+                        task.description || task.details || "";
 
-        taskMain.appendChild(taskHeader);
-        taskMain.appendChild(description);
-        taskMain.appendChild(taskDetails);
+                    const taskDetails = document.createElement("div");
 
-        const actions = document.createElement("div");
+                    taskDetails.className = "task-details";
 
-        actions.className = "task-card-actions";
+                    const assigneeText = document.createElement("span");
 
-        const statusBadge = document.createElement("span");
+                    assigneeText.textContent = "Assigned to: ";
 
-        statusBadge.className = "status-badge";
+                    const assigneeName = document.createElement("strong");
 
-        if (task.status === "open") {
-            statusBadge.classList.add("open");
-            statusBadge.textContent = "Open";
-        } else {
-            statusBadge.classList.add("complete");
-            statusBadge.textContent = "Completed";
-        }
+                    assigneeName.textContent =
+                        getTeamMemberName(task.assigneeId);
 
-        actions.appendChild(statusBadge);
+                    assigneeText.appendChild(assigneeName);
 
-        const notificationButton = document.createElement("button");
+                    taskDetails.appendChild(assigneeText);
 
-        notificationButton.className = "secondary-button";
-        notificationButton.type = "button";
-        notificationButton.textContent = "View notification outcome";
+                    taskMain.appendChild(taskHeader);
+                    taskMain.appendChild(description);
+                    taskMain.appendChild(taskDetails);
 
-        notificationButton.addEventListener("click", function () {
-            openNotificationModal(task.notificationStatus);
-        });
+                    const actions = document.createElement("div");
 
-        actions.appendChild(notificationButton);
+                    actions.className = "task-card-actions";
 
-        taskCard.appendChild(taskMain);
-        taskCard.appendChild(actions);
+                    const statusBadge = document.createElement("span");
 
-        taskList.appendChild(taskCard);
+                    statusBadge.className = "status-badge";
 
-        /* =========================================
-           Task Menu
-        ========================================= */
+                    if (task.status === "open") {
+                        statusBadge.classList.add("open");
+                        statusBadge.textContent = "Open";
+                    } else {
+                        statusBadge.classList.add("complete");
+                        statusBadge.textContent = "Completed";
+                    }
 
-        menuButton.addEventListener("click", function (event) {
-            event.stopPropagation();
+                    actions.appendChild(statusBadge);
 
-            document
-                .querySelectorAll(".task-menu-dropdown")
-                .forEach(function (dropdown) {
-                    dropdown.classList.add("hidden");
+                    const notificationButton = document.createElement("button");
+
+                    notificationButton.className = "secondary-button";
+                    notificationButton.type = "button";
+                    notificationButton.textContent =
+                        "View notification outcome";
+
+                    notificationButton.addEventListener("click", function () {
+                        openNotificationModal(task.notificationStatus);
+                    });
+
+                    actions.appendChild(notificationButton);
+
+                    taskCard.appendChild(taskMain);
+                    taskCard.appendChild(actions);
+
+                    taskList.appendChild(taskCard);
+
+                    /* =========================================
+                       Task Menu
+                    ========================================= */
+
+                    menuButton.addEventListener("click", function (event) {
+                        event.stopPropagation();
+
+                        document
+                            .querySelectorAll(".task-menu-dropdown")
+                            .forEach(function (dropdown) {
+                                dropdown.classList.add("hidden");
+                            });
+
+                        menu.classList.toggle("hidden");
+                    });
+
+                    /* =========================================
+                       Edit Task
+                    ========================================= */
+
+                    editButton.addEventListener("click", function () {
+                        editTask(task.id);
+                    });
+
+                    /* =========================================
+                       Delete Task
+                    ========================================= */
+
+                    deleteButton.addEventListener("click", function () {
+                        deleteTask(task.id);
+                    });
                 });
 
-            menu.classList.toggle("hidden");
-        });
+            // SHOW OR HIDE LOAD MORE BUTTON
+            if (loadMoreButton) {
+                if (createdTasks.length > visibleCount) {
+                    loadMoreButton.style.display = "block";
+                } else {
+                    loadMoreButton.style.display = "none";
+                }
+            }
 
-        /* =========================================
-           Edit Task
-        ========================================= */
+        } catch (error) {
 
-        editButton.addEventListener("click", function () {
-            editTask(task.id);
-        });
+            // REFRESH ERROR
+            taskList.innerHTML = "";
 
-        /* =========================================
-           Delete Task
-        ========================================= */
+            showMessage(
+                "Could not refresh tasks.",
+                "error"
+            );
+        }
+    }, 300);
+}
 
-        deleteButton.addEventListener("click", function () {
-            deleteTask(task.id);
-        });
+/* =========================================
+   Load More Button
+========================================= */
+
+// Show five more tasks when the user clicks Load More.
+if (loadMoreButton) {
+    loadMoreButton.addEventListener("click", function () {
+        visibleCount += 5;
+
+        renderTasks(currentFilter);
     });
 }
 
@@ -369,20 +468,36 @@ function editTask(taskId) {
     }
 
     if (newTitle.trim() === "") {
-        alert("Title is required.");
+        showMessage("Title is required.", "error");
         return;
     }
 
     if (newDescription.trim() === "") {
-        alert("Description is required.");
+        showMessage("Description is required.", "error");
         return;
     }
 
-    task.title = newTitle.trim();
-    task.description = newDescription.trim();
+    try {
+        task.title = newTitle.trim();
+        task.description = newDescription.trim();
 
-    saveTasks();
-    renderTasks();
+        saveTasks();
+
+        showMessage(
+            "Task updated successfully.",
+            "success"
+        );
+
+        renderTasks(currentFilter);
+
+    } catch (error) {
+
+        // UPDATE ERROR
+        showMessage(
+            "Could not update task. Try again.",
+            "error"
+        );
+    }
 }
 
 /* =========================================
@@ -410,12 +525,28 @@ function deleteTask(taskId) {
         return;
     }
 
-    tasks = tasks.filter(function (task) {
-        return task.id !== taskId;
-    });
+    try {
+        tasks = tasks.filter(function (task) {
+            return task.id !== taskId;
+        });
 
-    saveTasks();
-    renderTasks();
+        saveTasks();
+
+        showMessage(
+            "Task deleted successfully.",
+            "success"
+        );
+
+        renderTasks(currentFilter);
+
+    } catch (error) {
+
+        // DELETE ERROR
+        showMessage(
+            "Could not delete task. Try again.",
+            "error"
+        );
+    }
 }
 
 /* =========================================
@@ -452,7 +583,13 @@ filterButtons.forEach(function (button) {
 
         button.classList.add("active");
 
-        renderTasks(button.dataset.filter);
+        // Remember the selected filter.
+        currentFilter = button.dataset.filter;
+
+        // Reset Load More when changing filters.
+        visibleCount = 5;
+
+        renderTasks(currentFilter);
     });
 });
 
@@ -460,4 +597,8 @@ filterButtons.forEach(function (button) {
    Initial Page Setup
 ========================================= */
 
-renderTasks();
+// Show the initial loading state and then load tasks.
+visibleCount = 5;
+currentFilter = "all";
+
+renderTasks(currentFilter);

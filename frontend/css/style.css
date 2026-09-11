@@ -911,6 +911,76 @@ a {
     line-height: 1.4;
 }
 
+/* =========================================
+   Error Message
+========================================= */
+
+.error-message {
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+
+    padding: 12px 18px;
+    background-color: #FEF2F2;
+    color: #B91C1C;
+    border: 1px solid #FECACA;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+}
+
+/* =========================================
+   Success Message
+========================================= */
+
+.success-message {
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+
+    padding: 12px 18px;
+    background-color: #F0FDF4;
+    color: #15803D;
+    border: 1px solid #BBF7D0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+}
+
+/* =========================================
+   Load More Button
+========================================= */
+
+#load-more {
+    display: block;
+    margin: 24px auto 0;
+    padding: 10px 22px;
+    background-color: #FFFFFF;
+    color: #2563EB;
+    border: 1px solid #2563EB;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#load-more:hover {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+
+#load-more:focus {
+    outline: 2px solid #93C5FD;
+    outline-offset: 2px;
+}
+
 
 /* =========================================================
    RESPONSIVE — TABLET

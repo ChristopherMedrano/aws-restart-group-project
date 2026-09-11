@@ -1,5 +1,5 @@
 /* =========================================
-   Dashboard Data
+   Dashboard Data 
 ========================================= */
 
 // Temporary team members for frontend testing.
@@ -20,7 +20,7 @@ const teamMembers = [
 ];
 
 /* =========================================
-   Current User
+   Current User 
 ========================================= */
 
 // Temporary user information.
@@ -32,7 +32,7 @@ const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {
 };
 
 /* =========================================
-   Temporary Task Data
+   Temporary Task Data 
 ========================================= */
 
 // Temporary task for frontend testing.
@@ -59,14 +59,14 @@ if (!Array.isArray(tasks)) {
 }
 
 /* =========================================
-   URL Parameters
+   URL Parameters 
 ========================================= */
 
 const urlParams = new URLSearchParams(window.location.search);
 const returnPage = urlParams.get("return");
 
 /* =========================================
-   Save Tasks
+   Save Tasks 
 ========================================= */
 
 function saveTasks() {
@@ -74,7 +74,7 @@ function saveTasks() {
 }
 
 /* =========================================
-   Page Elements
+   Page Elements 
 ========================================= */
 
 const userNameElement = document.getElementById("user-name");
@@ -86,6 +86,9 @@ const cancelTaskButton = document.getElementById("cancel-task-button");
 const createTaskForm = document.getElementById("create-task-form");
 const taskList = document.getElementById("task-list");
 
+// Load More button.
+const loadMoreButton = document.getElementById("load-more");
+
 const taskTitleInput = document.getElementById("task-title");
 const taskDetailsInput = document.getElementById("task-details");
 const assigneeSelect = document.getElementById("assignee");
@@ -94,10 +97,32 @@ const titleError = document.getElementById("title-error");
 const descriptionError = document.getElementById("description-error");
 const assigneeError = document.getElementById("assignee-error");
 
+const liveRegion = document.getElementById("live-region");
+
+/* =========================================
+   Show Message
+========================================= */
+
+// Show a temporary success or error message.
+function showMessage(message, type) {
+    if (!liveRegion) {
+        return;
+    }
+
+    liveRegion.classList.remove("success-message", "error-message");
+    liveRegion.classList.add(type + "-message");
+    liveRegion.textContent = message;
+
+    setTimeout(function () {
+        liveRegion.textContent = "";
+        liveRegion.classList.remove("success-message", "error-message");
+    }, 3000);
+}
+
 userNameElement.textContent = currentUser.name;
 
 /* =========================================
-   Load Team Members
+   Load Team Members 
 ========================================= */
 
 // Add team members to the Assignee dropdown.
@@ -117,7 +142,7 @@ function loadAssignees() {
 }
 
 /* =========================================
-   Find Team Member
+   Find Team Member 
 ========================================= */
 
 // Get a team member's display name from their ID.
@@ -134,7 +159,7 @@ function getTeamMemberName(memberId) {
 }
 
 /* =========================================
-   Get Assigned Tasks
+   Get Assigned Tasks 
 ========================================= */
 
 // Get tasks where the current user is the assignee.
@@ -159,111 +184,186 @@ function getAssignedTasks(filter = "all") {
 }
 
 /* =========================================
-   Render Assigned Tasks
+   Load More State 
 ========================================= */
 
-function renderTasks(filter = "all") {
-    taskList.innerHTML = "";
+// Number of tasks shown at one time.
+let visibleCount = 5;
 
-    const assignedTasks = getAssignedTasks(filter);
+// Remember the currently selected filter.
+let currentFilter = "all";
 
-    if (assignedTasks.length === 0) {
-        const emptyMessage = document.createElement("div");
+/* =========================================
+   Render Assigned Tasks 
+========================================= */
 
-        emptyMessage.className = "empty-task-message";
-        emptyMessage.textContent = "No tasks are currently assigned to you.";
+function renderTasks(filter = currentFilter) {
+    currentFilter = filter;
 
-        taskList.appendChild(emptyMessage);
-        return;
+    // INITIAL LOADING STATE
+    taskList.innerHTML =
+        "<div class='empty-task-message'>Loading…</div>";
+
+    if (loadMoreButton) {
+        loadMoreButton.style.display = "none";
     }
 
-    assignedTasks.forEach(function (task) {
-        const taskCard = document.createElement("article");
+    // Small delay to show the loading state.
+    setTimeout(function () {
+        try {
+            const assignedTasks = getAssignedTasks(currentFilter);
 
-        taskCard.className = "task-card";
-        taskCard.dataset.status = task.status;
+            // Clear the loading message after tasks are loaded.
+            taskList.innerHTML = "";
 
-        const taskMain = document.createElement("div");
+            // EMPTY LIST
+            if (assignedTasks.length === 0) {
+                const emptyMessage = document.createElement("div");
 
-        taskMain.className = "task-card-main";
+                emptyMessage.className = "empty-task-message";
+                emptyMessage.textContent =
+                    "No tasks are currently assigned to you.";
 
-        const taskHeader = document.createElement("div");
+                taskList.appendChild(emptyMessage);
 
-        taskHeader.className = "task-card-header";
+                if (loadMoreButton) {
+                    loadMoreButton.style.display = "none";
+                }
 
-        const title = document.createElement("h3");
+                return;
+            }
 
-        title.textContent = task.title;
+            // RENDER TASKS
+            assignedTasks
+                .slice(0, visibleCount)
+                .forEach(function (task) {
 
-        taskHeader.appendChild(title);
+                    const taskCard = document.createElement("article");
 
-        const description = document.createElement("p");
+                    taskCard.className = "task-card";
+                    taskCard.dataset.status = task.status;
 
-        description.className = "task-description";
-        description.textContent = task.description || task.details || "";
+                    const taskMain = document.createElement("div");
 
-        const creatorDetails = document.createElement("div");
+                    taskMain.className = "task-card-main";
 
-        creatorDetails.className = "task-details";
+                    const taskHeader = document.createElement("div");
 
-        const creatorText = document.createElement("span");
+                    taskHeader.className = "task-card-header";
 
-        creatorText.textContent = "Assigned by: ";
+                    const title = document.createElement("h3");
 
-        const creatorName = document.createElement("strong");
+                    title.textContent = task.title;
 
-        creatorName.textContent = getTeamMemberName(task.createdById);
+                    taskHeader.appendChild(title);
 
-        creatorText.appendChild(creatorName);
-        creatorDetails.appendChild(creatorText);
+                    const description = document.createElement("p");
 
-        taskMain.appendChild(taskHeader);
-        taskMain.appendChild(description);
-        taskMain.appendChild(creatorDetails);
+                    description.className = "task-description";
+                    description.textContent =
+                        task.description || task.details || "";
 
-        const actions = document.createElement("div");
+                    const creatorDetails = document.createElement("div");
 
-        actions.className = "task-card-actions";
+                    creatorDetails.className = "task-details";
 
-        const statusBadge = document.createElement("span");
+                    const creatorText = document.createElement("span");
 
-        statusBadge.className = "status-badge";
+                    creatorText.textContent = "Assigned by: ";
 
-        if (task.status === "open") {
-            statusBadge.classList.add("open");
-            statusBadge.textContent = "Open";
-        } else {
-            statusBadge.classList.add("complete");
-            statusBadge.textContent = "Completed";
+                    const creatorName = document.createElement("strong");
+
+                    creatorName.textContent =
+                        getTeamMemberName(task.createdById);
+
+                    creatorText.appendChild(creatorName);
+                    creatorDetails.appendChild(creatorText);
+
+                    taskMain.appendChild(taskHeader);
+                    taskMain.appendChild(description);
+                    taskMain.appendChild(creatorDetails);
+
+                    const actions = document.createElement("div");
+
+                    actions.className = "task-card-actions";
+
+                    const statusBadge = document.createElement("span");
+
+                    statusBadge.className = "status-badge";
+
+                    if (task.status === "open") {
+                        statusBadge.classList.add("open");
+                        statusBadge.textContent = "Open";
+                    } else {
+                        statusBadge.classList.add("complete");
+                        statusBadge.textContent = "Completed";
+                    }
+
+                    actions.appendChild(statusBadge);
+
+                    // Only the assigned user can mark the task complete.
+                    if (
+                        task.status === "open" &&
+                        task.assigneeId === currentUser.id
+                    ) {
+                        const completeButton =
+                            document.createElement("button");
+
+                        completeButton.className = "complete-button";
+                        completeButton.type = "button";
+                        completeButton.textContent = "Mark Complete";
+
+                        completeButton.addEventListener(
+                            "click",
+                            function () {
+                                completeTask(task.id);
+                            }
+                        );
+
+                        actions.appendChild(completeButton);
+                    }
+
+                    taskCard.appendChild(taskMain);
+                    taskCard.appendChild(actions);
+
+                    taskList.appendChild(taskCard);
+                });
+
+            // SHOW OR HIDE LOAD MORE BUTTON
+            if (loadMoreButton) {
+                if (assignedTasks.length > visibleCount) {
+                    loadMoreButton.style.display = "block";
+                } else {
+                    loadMoreButton.style.display = "none";
+                }
+            }
+
+        } catch (error) {
+
+            // REFRESH ERROR
+            showMessage("Could not refresh tasks.", "error");
         }
+    }, 300);
+}
 
-        actions.appendChild(statusBadge);
+/* =========================================
+   Load More Button 
+========================================= */
 
-        if (task.status === "open" && task.assigneeId === currentUser.id) {
-            const completeButton = document.createElement("button");
+// Show five more tasks when the user clicks Load More.
+if (loadMoreButton) {
+    loadMoreButton.addEventListener("click", function () {
+        visibleCount += 5;
 
-            completeButton.className = "complete-button";
-            completeButton.type = "button";
-            completeButton.textContent = "Mark Complete";
-
-            completeButton.addEventListener("click", function () {
-                completeTask(task.id);
-            });
-
-            actions.appendChild(completeButton);
-        }
-
-        taskCard.appendChild(taskMain);
-        taskCard.appendChild(actions);
-
-        taskList.appendChild(taskCard);
+        renderTasks(currentFilter);
     });
 }
 
 /* =========================================
-   Open Create Task Modal
+   Open Create Task Modal 
 ========================================= */
 
+// Open the Create Task popup.
 function openCreateTaskModal() {
     createTaskModal.classList.remove("hidden");
 
@@ -271,9 +371,10 @@ function openCreateTaskModal() {
 }
 
 /* =========================================
-   Close Create Task Modal
+   Close Create Task Modal 
 ========================================= */
 
+// Close the Create Task popup and reset the form.
 function closeCreateTaskModal() {
     createTaskModal.classList.add("hidden");
 
@@ -285,7 +386,7 @@ function closeCreateTaskModal() {
 }
 
 /* =========================================
-   Create Task
+   Create Task 
 ========================================= */
 
 // Create and save a new task.
@@ -305,7 +406,8 @@ function createTask() {
     }
 
     if (assigneeId === "") {
-        assigneeError.textContent = "Please select an assignee.";
+        assigneeError.textContent =
+            "Please select an assignee.";
         return;
     }
 
@@ -326,7 +428,13 @@ function createTask() {
 
     saveTasks();
 
-    renderTasks();
+    // Reset the number of visible tasks.
+    visibleCount = 5;
+
+    renderTasks("all");
+
+    // Show success message.
+    showMessage("Task created successfully.", "success");
 
     setTimeout(function () {
         closeCreateTaskModal();
@@ -338,7 +446,7 @@ function createTask() {
 }
 
 /* =========================================
-   Complete Task
+   Complete Task 
 ========================================= */
 
 // Only the person assigned to the task can mark it complete.
@@ -361,32 +469,54 @@ function completeTask(taskId) {
         return;
     }
 
-    task.status = "complete";
+    try {
+        task.status = "complete";
 
-    saveTasks();
-    renderTasks();
+        saveTasks();
+
+        // COMPLETION SUCCESS
+        showMessage("Task marked complete.", "success");
+
+        renderTasks(currentFilter);
+
+    } catch (error) {
+
+        // COMPLETION ERROR
+        showMessage(
+            "Could not complete task. Try again.",
+            "error"
+        );
+    }
 }
 
 /* =========================================
-   Task Filters
+   Task Filters 
 ========================================= */
 
-const filterButtons = document.querySelectorAll(".filter-button");
+const filterButtons =
+    document.querySelectorAll(".filter-button");
 
 filterButtons.forEach(function (button) {
     button.addEventListener("click", function () {
+
         filterButtons.forEach(function (button) {
             button.classList.remove("active");
         });
 
         button.classList.add("active");
 
-        renderTasks(button.dataset.filter);
+        // Remember the selected filter.
+        currentFilter = button.dataset.filter;
+
+        // Reset Load More when changing filters.
+        visibleCount = 5;
+
+        renderTasks(currentFilter);
     });
 });
 
 /* =========================================
-   Create Task Button
+   Create Task Button 
 ========================================= */
 
 // Open the Create Task popup.
@@ -395,7 +525,7 @@ createTaskButton.addEventListener("click", function () {
 });
 
 /* =========================================
-   Navigation Create Task
+   Navigation Create Task 
 ========================================= */
 
 // The Create Task link in the navbar also opens the popup.
@@ -406,7 +536,7 @@ navCreateTask.addEventListener("click", function (event) {
 });
 
 /* =========================================
-   Close Modal
+   Close Modal 
 ========================================= */
 
 closeModalButton.addEventListener("click", function () {
@@ -418,7 +548,7 @@ cancelTaskButton.addEventListener("click", function () {
 });
 
 /* =========================================
-   Close Modal by Clicking Outside
+   Close Modal by Clicking Outside 
 ========================================= */
 
 createTaskModal.addEventListener("click", function (event) {
@@ -428,7 +558,7 @@ createTaskModal.addEventListener("click", function (event) {
 });
 
 /* =========================================
-   Create Task Form
+   Create Task Form 
 ========================================= */
 
 createTaskForm.addEventListener("submit", function (event) {
@@ -438,7 +568,7 @@ createTaskForm.addEventListener("submit", function (event) {
 });
 
 /* =========================================
-   Title Validation
+   Title Validation 
 ========================================= */
 
 taskTitleInput.addEventListener("input", function () {
@@ -446,7 +576,7 @@ taskTitleInput.addEventListener("input", function () {
 });
 
 /* =========================================
-   Description Validation
+   Description Validation 
 ========================================= */
 
 taskDetailsInput.addEventListener("input", function () {
@@ -454,7 +584,7 @@ taskDetailsInput.addEventListener("input", function () {
 });
 
 /* =========================================
-   Assignee Validation
+   Assignee Validation 
 ========================================= */
 
 assigneeSelect.addEventListener("change", function () {
@@ -462,14 +592,19 @@ assigneeSelect.addEventListener("change", function () {
 });
 
 /* =========================================
-   Initial Page Setup
+   Initial Page Setup 
 ========================================= */
 
 loadAssignees();
-renderTasks();
+
+// Show the initial loading state and then load tasks.
+visibleCount = 5;
+currentFilter = "all";
+
+renderTasks(currentFilter);
 
 /* =========================================
-   Open Create Task From Another Page
+   Open Create Task From Another Page 
 ========================================= */
 
 if (urlParams.get("create") === "true") {
