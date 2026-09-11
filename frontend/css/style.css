@@ -67,6 +67,18 @@ a {
     font-size: 15px;
 }
 
+#auth-status {
+    min-height: 24px;
+    margin: -12px 0 18px;
+    color: #475569;
+    text-align: center;
+    font-size: 14px;
+}
+
+#auth-status.error {
+    color: #B91C1C;
+}
+
 /* =========================================================
    FORM
 ========================================================= */
