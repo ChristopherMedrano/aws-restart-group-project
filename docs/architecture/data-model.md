@@ -21,23 +21,23 @@ Purpose: store the application profile and provide the assignee directory.
 | Item detail | Fill in |
 | --- | --- |
 | Table name | `Users` |
-| Primary key attribute and type | |
+| Primary key attribute and type | `userId` (String) |
 | Directory GSI name | `directoryPk-displayNameKey` |
-| Directory GSI partition key | |
-| Directory GSI sort key | |
+| Directory GSI partition key | `directoryPk` (String), constant value `DIRECTORY` |
+| Directory GSI sort key | `displayNameKey` (String), lowercase display name + `#` + `userId` |
 | Directory ordering | Display names, case-insensitive; duplicate names must remain stable. |
 
 Required attributes:
 
 | Attribute | DynamoDB type | Public API field? | Notes |
 | --- | --- | --- | --- |
-| `userId` | | Yes | Cognito user ID. |
-| `displayName` | | Yes | Returned by `/me` and `/assignees`. |
-| `email` | | `/me` only | Never return from `/assignees`. |
-| `emailNotificationsEnabled` | | `/me` only | Used by notification processing. |
-| `createdAt` | | Yes | Server-generated timestamp. |
-| `directoryPk` | | No | Needed for the assignee-directory GSI. |
-| `displayNameKey` | | No | Needed for stable directory ordering. |
+| `userId` | String | Yes | Cognito `sub`. |
+| `displayName` | String | Yes | Returned by `/me` and `/assignees`. |
+| `email` | String | `/me` only | Never return from `/assignees`. |
+| `emailNotificationsEnabled` | Boolean | `/me` only | Used by notification processing. |
+| `createdAt` | String | Yes | Server-generated ISO 8601 timestamp. |
+| `directoryPk` | String | No | Constant `DIRECTORY`; needed for the assignee-directory GSI. |
+| `displayNameKey` | String | No | Lowercase `displayName` + `#` + `userId` for stable directory ordering. |
 
 ## 2. Tasks table
 
@@ -108,7 +108,7 @@ Fill in the table/index used for each action. Do not use DynamoDB scans.
 
 | Action | Table or GSI used | Query/read/write notes |
 | --- | --- | --- |
-| `GET /me` | | |
+| `GET /me` | `Users` table | `GetItem` by `userId` from the JWT `sub`; use a consistent read. |
 | `PATCH /me` | | |
 | `GET /assignees` | | |
 | `POST /tasks` | | Validate both users; create or read by task ID. |

@@ -25,6 +25,31 @@ Build these SPA routes. Use the route names if the app has routing.
 | Profile | `/profile` | Change display name and email-notification preference. |
 | Not Found | any unknown route | Show a helpful message and a link back to Assigned Tasks. |
 
+### Cognito redirect URLs
+
+Configure the Cognito SPA app client with these exact URLs:
+
+| Purpose | URL |
+| --- | --- |
+| Authorization-code callback | `http://localhost:5173/callback` |
+| Managed-login sign-out return | `http://localhost:5173/` |
+| Deployed demo callback | `https://d22amkzcsmugnp.cloudfront.net/` |
+| Deployed demo sign-out return | `https://d22amkzcsmugnp.cloudfront.net/` |
+
+The callback path is `/callback` because the SPA reserves that route to finish
+the Cognito authorization-code flow without displaying code or token values.
+Port `5173` is the documented Vite default and is the selected local convention
+until the frontend setup explicitly chooses another port. Keep the local URLs
+while local development remains supported.
+
+### Temporary deployed authentication demo
+
+The deployed CloudFront demo currently completes Cognito's authorization-code
+return at `/`, calls protected `GET /me` with the access token, and displays
+only the returned display name and user ID. It is a validation stub, not the
+planned routed SPA: the routes and screens in this specification remain work to
+be completed.
+
 Also build these in-app recovery states. They are frontend-owned screens, not
 separate normal routes and not Cognito-hosted pages.
 

@@ -4,36 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In | S3NT</title>
-    <link rel="stylesheet" href="css/style.css"> 
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <main class="auth-container">
         <section class="auth-card">
             <h1>S3NT</h1>
-            <p class="subtitle">Sign in to your account</p>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                </div>
+            <p class="subtitle">Sign in securely with the S3NT user pool.</p>
+    <p id="auth-status" role="status" aria-live="polite"></p>
 
-                <button type="submit" class="auth-submit primary-button">Sign In</button>
+    <section id="profile" hidden aria-labelledby="profile-heading">
+      <h2 id="profile-heading">Your profile</h2>
+      <p id="profile-name"></p>
+      <p id="profile-id"></p>
+    </section>
 
-            </form>
+    <button id="sign-in" type="button" class="auth-submit primary-button">
+      Sign in with Cognito
+            </button>
 
-            <p class="auth-link"> 
-                Don't have an account? 
-                <a href="signup.html">Create an account</a>
+            <p class="auth-link">
+                Need an account? Contact an S3NT administrator.
             </p>
 
         </section>
 
     </main>
-    <script src="js/auth.js"></script>
-    
+    <script src="js/auth.js" defer></script>
+
 </body>
 </html>
