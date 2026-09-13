@@ -169,12 +169,34 @@ def update_me(event, user_id):
     return response(200, {"user": profile_from_item(updated.get("Attributes", {}))})
 
 
-# TODO: GET /assignees reads the Users directory GSI.
-# Return: 200 {"assignees": [{"userId": "...", "displayName": "..."}]}.
-# Security: never return email addresses or notification preferences.
 def get_assignees(user_id):
-    """Stub for the future GET /assignees implementation."""
-    return response(501, {"message": "Not implemented"})
+    """Return the assignee directory without emails or preferences."""
+    LOGGER.info("GET /assignees requested")
+    items = []
+    kwargs = {
+        "IndexName": "directoryPk-displayNameKey",
+        "KeyConditionExpression": "directoryPk = :pk",
+        "ExpressionAttributeValues": {":pk": "DIRECTORY"},
+    }
+    try:
+        while True:
+            page = _users_table().query(**kwargs)
+            items.extend(page.get("Items", []))
+            last = page.get("LastEvaluatedKey")
+            if not last:
+                break
+            kwargs["ExclusiveStartKey"] = last
+    except ClientError:
+        LOGGER.exception("Unable to load assignees")
+        return response(500, {"message": "Unable to load assignees"})
+
+    assignees = [
+        {"userId": item["userId"], "displayName": item.get("displayName")}
+        for item in items
+        if "userId" in item
+    ]
+    LOGGER.info("GET /assignees succeeded")
+    return response(200, {"assignees": assignees})
 
 
 # TODO: POST /tasks accepts taskId, title, description, and assigneeId.

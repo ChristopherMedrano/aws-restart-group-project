@@ -150,10 +150,40 @@ class UpdateProfileTests(unittest.TestCase):
         users.assert_not_called()
 
 
+class GetAssigneesTests(unittest.TestCase):
+    def test_returns_only_directory_public_fields(self):
+        table = unittest.mock.Mock()
+        table.query.return_value = {
+            "Items": [
+                {
+                    "userId": "user-123",
+                    "displayName": "Taylor",
+                    "email": "hidden@example.test",
+                    "emailNotificationsEnabled": False,
+                    "directoryPk": "DIRECTORY",
+                    "displayNameKey": "taylor#user-123",
+                }
+            ]
+        }
+
+        with patch.object(lambda_function, "_users_table", return_value=table):
+            result = lambda_function.lambda_handler(
+                api_event(route_key="GET /assignees"), None
+            )
+
+        self.assertEqual(result["statusCode"], 200)
+        self.assertEqual(
+            json.loads(result["body"]),
+            {"assignees": [{"userId": "user-123", "displayName": "Taylor"}]},
+        )
+        kwargs = table.query.call_args.kwargs
+        self.assertEqual(kwargs["IndexName"], "directoryPk-displayNameKey")
+        self.assertEqual(kwargs["ExpressionAttributeValues"][":pk"], "DIRECTORY")
+
+
 class RemainingRouteStubTests(unittest.TestCase):
     def test_remaining_contract_routes_are_explicit_stubs(self):
         route_keys = (
-            "GET /assignees",
             "POST /tasks",
             "GET /tasks",
             "PATCH /tasks/{taskId}/status",
