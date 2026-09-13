@@ -410,6 +410,28 @@ class GetTasksTests(unittest.TestCase):
         self.assertEqual(result["statusCode"], 400)
         self.assertEqual(json.loads(result["body"]), {"message": "Invalid request"})
 
+    def test_rejects_float_next_token_before_assigned_query(self):
+        bad_token = base64.urlsafe_b64encode(
+            json.dumps({"assigneeId": 1.5}, separators=(",", ":")).encode("ascii")
+        ).decode("ascii")
+        tasks = unittest.mock.Mock()
+        tasks.query.side_effect = TypeError(
+            "Float types are not supported. Use Decimal types instead."
+        )
+
+        with patch.object(lambda_function, "_tasks_table", return_value=tasks):
+            result = lambda_function.lambda_handler(
+                api_event(
+                    route_key="GET /tasks",
+                    query={"role": "assigned", "nextToken": bad_token},
+                ),
+                None,
+            )
+
+        self.assertEqual(result["statusCode"], 400)
+        self.assertEqual(json.loads(result["body"]), {"message": "Invalid request"})
+        tasks.query.assert_not_called()
+
 
 class UpdateTaskStatusTests(unittest.TestCase):
     def test_assignee_completes_open_task(self):
@@ -571,3 +593,46 @@ class NotificationReadTests(unittest.TestCase):
         kwargs = notes.query.call_args.kwargs
         self.assertEqual(kwargs["IndexName"], "historyRecipientId-historySortKey")
         self.assertFalse(kwargs["ScanIndexForward"])
+
+    def test_rejects_invalid_notifications_next_token(self):
+        float_token = base64.urlsafe_b64encode(
+            json.dumps({"historyRecipientId": 1.5}, separators=(",", ":")).encode(
+                "ascii"
+            )
+        ).decode("ascii")
+        wrong_pk_token = base64.urlsafe_b64encode(
+            json.dumps(
+                {
+                    "historyRecipientId": "other-user",
+                    "historySortKey": "2026-09-13T12:00:00Z#sent",
+                    "taskId": TASK_ID,
+                },
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).decode("ascii")
+        notes = unittest.mock.Mock()
+        notes.query.side_effect = TypeError(
+            "Float types are not supported. Use Decimal types instead."
+        )
+
+        with patch.object(lambda_function, "_notifications_table", return_value=notes):
+            float_result = lambda_function.lambda_handler(
+                api_event(
+                    route_key="GET /notifications",
+                    query={"nextToken": float_token},
+                ),
+                None,
+            )
+            pk_result = lambda_function.lambda_handler(
+                api_event(
+                    route_key="GET /notifications",
+                    query={"nextToken": wrong_pk_token},
+                ),
+                None,
+            )
+
+        self.assertEqual(float_result["statusCode"], 400)
+        self.assertEqual(json.loads(float_result["body"]), {"message": "Invalid request"})
+        self.assertEqual(pk_result["statusCode"], 400)
+        self.assertEqual(json.loads(pk_result["body"]), {"message": "Invalid request"})
+        notes.query.assert_not_called()

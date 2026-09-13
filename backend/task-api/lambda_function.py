@@ -332,6 +332,25 @@ def decode_next_token(raw):
     return data
 
 
+ASSIGNED_START_KEY_ATTRS = frozenset({"assigneeId", "createdSortKey", "taskId"})
+CREATED_START_KEY_ATTRS = frozenset({"creatorId", "createdSortKey", "taskId"})
+NOTIFICATION_START_KEY_ATTRS = frozenset(
+    {"historyRecipientId", "historySortKey", "taskId"}
+)
+
+
+def valid_start_key(start_key, allowed_keys, user_id, pk_name):
+    if not isinstance(start_key, dict):
+        return False
+    if not set(start_key.keys()).issubset(allowed_keys):
+        return False
+    if not all(isinstance(value, str) for value in start_key.values()):
+        return False
+    if pk_name in start_key and start_key[pk_name] != user_id:
+        return False
+    return True
+
+
 def parse_limit(query):
     raw = (query or {}).get("limit")
     if raw in (None, ""):
@@ -367,7 +386,12 @@ def get_tasks(event, user_id):
     token = query.get("nextToken")
     if token:
         start_key = decode_next_token(token)
-        if start_key is None:
+        allowed = (
+            CREATED_START_KEY_ATTRS if role == "created" else ASSIGNED_START_KEY_ATTRS
+        )
+        if start_key is None or not valid_start_key(
+            start_key, allowed, user_id, pk_name
+        ):
             return response(400, {"message": "Invalid request"})
 
     kwargs = {
@@ -441,9 +465,6 @@ def update_task_status(event, user_id):
     return response(200, {"task": task_from_item(updated.get("Attributes", {}))})
 
 
-# TODO: GET /tasks/{taskId}/notification reads the one notification outcome.
-# Return: 200 {"notification": notification-or-null}.
-# Security: only the task creator or assignee may read it.
 TERMINAL_STATUSES = frozenset({"sent", "skipped", "failed", "unknown"})
 
 
@@ -497,9 +518,6 @@ def get_task_notification(event, user_id):
     return response(200, {"notification": notification_from_item(item)})
 
 
-# TODO: GET /notifications supports optional opaque pagination.
-# Return: 200 {"notifications": [...], "nextToken": "..."} when another page exists.
-# Security: return only the authenticated caller's history; omit task titles.
 def get_notifications(event, user_id):
     """Return the caller's terminal notification history."""
     LOGGER.info("GET /notifications requested")
@@ -511,7 +529,12 @@ def get_notifications(event, user_id):
     token = query.get("nextToken")
     if token:
         start_key = decode_next_token(token)
-        if start_key is None:
+        if start_key is None or not valid_start_key(
+            start_key,
+            NOTIFICATION_START_KEY_ATTRS,
+            user_id,
+            "historyRecipientId",
+        ):
             return response(400, {"message": "Invalid request"})
     kwargs = {
         "IndexName": "historyRecipientId-historySortKey",
@@ -525,7 +548,11 @@ def get_notifications(event, user_id):
         kwargs["ExclusiveStartKey"] = start_key
     try:
         page = _notifications_table().query(**kwargs)
-    except ClientError:
+    except ParamValidationError:
+        return response(400, {"message": "Invalid request"})
+    except ClientError as exc:
+        if exc.response["Error"]["Code"] == "ValidationException":
+            return response(400, {"message": "Invalid request"})
         LOGGER.exception("Unable to list notifications")
         return response(500, {"message": "Unable to list notifications"})
     body = {
