@@ -13,7 +13,7 @@ import re
 from datetime import datetime, timezone
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
@@ -379,7 +379,11 @@ def get_tasks(event, user_id):
 
     try:
         page = _tasks_table().query(**kwargs)
-    except ClientError:
+    except ParamValidationError:
+        return response(400, {"message": "Invalid request"})
+    except ClientError as exc:
+        if exc.response["Error"]["Code"] == "ValidationException":
+            return response(400, {"message": "Invalid request"})
         LOGGER.exception("Unable to list tasks")
         return response(500, {"message": "Unable to list tasks"})
 
