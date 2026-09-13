@@ -1,5 +1,5 @@
 /* Public SPA configuration. This browser client intentionally has no secret. */
-const AUTH_CONFIG = Object.freeze({
+const AUTH_CONFIG = Object.freeze(window.S3NT_CONFIG || {
     cognitoDomain: "https://us-east-2e4zskjgi6.auth.us-east-2.amazoncognito.com",
     clientId: "3shfthangguj7gion7a2afia6e",
     apiBaseUrl: "https://o7f51vbeyh.execute-api.us-east-2.amazonaws.com",
