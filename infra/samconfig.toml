@@ -3,6 +3,12 @@ version = 0.1
 [default.global.parameters]
 region = "us-east-2"
 
+[bootstrap.global.parameters]
+region = "us-east-2"
+
+[app.global.parameters]
+region = "us-east-2"
+
 [bootstrap.deploy.parameters]
 stack_name = "s3nt-bootstrap"
 template_file = "bootstrap/template.yaml"
@@ -17,6 +23,4 @@ template_file = "app/template.yaml"
 stack_name = "s3nt-app"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-# After s3nt-bootstrap exists, replace resolve_s3 with:
-# s3_bucket = "<ArtifactBucketName>"
-resolve_s3 = true
+s3_bucket = "s3nt-bootstrap-artifactbucket-agk6tbwghk9m"
