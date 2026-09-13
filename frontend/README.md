@@ -1,7 +1,7 @@
 # S3NT frontend
 
-This directory contains the S3NT browser application. It is a dependency-free
-single-page application served as static files through CloudFront and S3.
+This directory contains the S3NT browser application. It is a single-page
+application served as static files through CloudFront and S3.
 
 ## Current behavior
 
