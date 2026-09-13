@@ -506,18 +506,68 @@ class UpdateTaskStatusTests(unittest.TestCase):
         tasks.update_item.assert_not_called()
 
 
-class RemainingRouteStubTests(unittest.TestCase):
-    def test_remaining_contract_routes_are_explicit_stubs(self):
-        route_keys = (
-            "GET /tasks/{taskId}/notification",
-            "GET /notifications",
-        )
+class NotificationReadTests(unittest.TestCase):
+    def test_returns_null_notification_for_task_party(self):
+        tasks = unittest.mock.Mock()
+        tasks.get_item.return_value = {
+            "Item": {
+                "taskId": TASK_ID,
+                "creatorId": "user-123",
+                "assigneeId": "other",
+                "title": "Ship keys",
+                "description": "x",
+                "status": "open",
+                "createdAt": "2026-09-13T12:00:00Z",
+            }
+        }
+        notes = unittest.mock.Mock()
+        notes.get_item.return_value = {}
 
-        for route_key in route_keys:
-            with self.subTest(route_key=route_key):
-                result = lambda_function.lambda_handler(api_event(route_key), None)
+        with (
+            patch.object(lambda_function, "_tasks_table", return_value=tasks),
+            patch.object(lambda_function, "_notifications_table", return_value=notes),
+        ):
+            result = lambda_function.lambda_handler(
+                api_event(
+                    route_key="GET /tasks/{taskId}/notification",
+                    path={"taskId": TASK_ID},
+                ),
+                None,
+            )
 
-                self.assertEqual(result["statusCode"], 501)
-                self.assertEqual(
-                    json.loads(result["body"]), {"message": "Not implemented"}
-                )
+        self.assertEqual(result["statusCode"], 200)
+        self.assertEqual(json.loads(result["body"]), {"notification": None})
+
+    def test_forbids_strangers_and_lists_empty_history(self):
+        tasks = unittest.mock.Mock()
+        tasks.get_item.return_value = {
+            "Item": {
+                "taskId": TASK_ID,
+                "creatorId": "a",
+                "assigneeId": "b",
+            }
+        }
+        notes = unittest.mock.Mock()
+        notes.query.return_value = {"Items": []}
+
+        with (
+            patch.object(lambda_function, "_tasks_table", return_value=tasks),
+            patch.object(lambda_function, "_notifications_table", return_value=notes),
+        ):
+            forbidden = lambda_function.lambda_handler(
+                api_event(
+                    route_key="GET /tasks/{taskId}/notification",
+                    path={"taskId": TASK_ID},
+                ),
+                None,
+            )
+            history = lambda_function.lambda_handler(
+                api_event(route_key="GET /notifications"), None
+            )
+
+        self.assertEqual(forbidden["statusCode"], 403)
+        self.assertEqual(history["statusCode"], 200)
+        self.assertEqual(json.loads(history["body"]), {"notifications": []})
+        kwargs = notes.query.call_args.kwargs
+        self.assertEqual(kwargs["IndexName"], "historyRecipientId-historySortKey")
+        self.assertFalse(kwargs["ScanIndexForward"])

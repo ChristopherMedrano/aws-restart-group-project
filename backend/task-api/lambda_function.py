@@ -59,6 +59,10 @@ def _tasks_table():
     return boto3.resource("dynamodb").Table(os.environ["TASKS_TABLE"])
 
 
+def _notifications_table():
+    return boto3.resource("dynamodb").Table(os.environ["NOTIFICATIONS_TABLE"])
+
+
 def task_from_item(item):
     """Return public task fields; completedAt is JSON null when unset."""
     public = {field: item[field] for field in TASK_FIELDS if field in item}
@@ -440,17 +444,100 @@ def update_task_status(event, user_id):
 # TODO: GET /tasks/{taskId}/notification reads the one notification outcome.
 # Return: 200 {"notification": notification-or-null}.
 # Security: only the task creator or assignee may read it.
+TERMINAL_STATUSES = frozenset({"sent", "skipped", "failed", "unknown"})
+
+
+def notification_from_item(item):
+    """Public notification body, or None when no item exists."""
+    if not item:
+        return None
+    public = {
+        "taskId": item.get("taskId"),
+        "channel": item.get("channel"),
+        "createdAt": item.get("createdAt"),
+        "sentAt": item.get("sentAt", None),
+    }
+    status = item.get("status")
+    if status in TERMINAL_STATUSES:
+        public["status"] = status
+        public["recipientId"] = item.get("recipientId")
+        if "failureReason" in item:
+            public["failureReason"] = item["failureReason"]
+    return public
+
+
 def get_task_notification(event, user_id):
-    """Stub for the future GET /tasks/{taskId}/notification implementation."""
-    return response(501, {"message": "Not implemented"})
+    """Return one task notification for the creator or assignee."""
+    LOGGER.info("GET /tasks/notification requested")
+    task_id = (event.get("pathParameters") or {}).get("taskId")
+    if not task_id:
+        return response(400, {"message": "Invalid request"})
+    try:
+        task = _tasks_table().get_item(
+            Key={"taskId": task_id},
+            ConsistentRead=True,
+        ).get("Item")
+    except ClientError:
+        LOGGER.exception("Unable to load task")
+        return response(500, {"message": "Unable to load notification"})
+    if not task:
+        return response(404, {"message": "Task not found"})
+    if user_id not in (task.get("creatorId"), task.get("assigneeId")):
+        LOGGER.info("GET /tasks/notification forbidden")
+        return response(403, {"message": "Forbidden"})
+    try:
+        item = _notifications_table().get_item(
+            Key={"taskId": task_id},
+            ConsistentRead=True,
+        ).get("Item")
+    except ClientError:
+        LOGGER.exception("Unable to load notification")
+        return response(500, {"message": "Unable to load notification"})
+    LOGGER.info("GET /tasks/notification succeeded")
+    return response(200, {"notification": notification_from_item(item)})
 
 
 # TODO: GET /notifications supports optional opaque pagination.
 # Return: 200 {"notifications": [...], "nextToken": "..."} when another page exists.
 # Security: return only the authenticated caller's history; omit task titles.
 def get_notifications(event, user_id):
-    """Stub for the future GET /notifications implementation."""
-    return response(501, {"message": "Not implemented"})
+    """Return the caller's terminal notification history."""
+    LOGGER.info("GET /notifications requested")
+    query = event.get("queryStringParameters") or {}
+    limit, error = parse_limit(query)
+    if error:
+        return error
+    start_key = None
+    token = query.get("nextToken")
+    if token:
+        start_key = decode_next_token(token)
+        if start_key is None:
+            return response(400, {"message": "Invalid request"})
+    kwargs = {
+        "IndexName": "historyRecipientId-historySortKey",
+        "KeyConditionExpression": "#pk = :pk",
+        "ExpressionAttributeNames": {"#pk": "historyRecipientId"},
+        "ExpressionAttributeValues": {":pk": user_id},
+        "ScanIndexForward": False,
+        "Limit": limit,
+    }
+    if start_key:
+        kwargs["ExclusiveStartKey"] = start_key
+    try:
+        page = _notifications_table().query(**kwargs)
+    except ClientError:
+        LOGGER.exception("Unable to list notifications")
+        return response(500, {"message": "Unable to list notifications"})
+    body = {
+        "notifications": [
+            notification_from_item(item) for item in page.get("Items", [])
+        ]
+    }
+    next_token = encode_next_token(page.get("LastEvaluatedKey"))
+    if next_token:
+        body["nextToken"] = next_token
+    LOGGER.info("GET /notifications succeeded")
+    return response(200, body)
 
 
 # Route authenticated API Gateway requests to their route handlers.
