@@ -411,10 +411,104 @@ class GetTasksTests(unittest.TestCase):
         self.assertEqual(json.loads(result["body"]), {"message": "Invalid request"})
 
 
+class UpdateTaskStatusTests(unittest.TestCase):
+    def test_assignee_completes_open_task(self):
+        tasks = unittest.mock.Mock()
+        tasks.get_item.return_value = {
+            "Item": {
+                "taskId": TASK_ID,
+                "title": "Ship keys",
+                "description": "Fill the data model",
+                "creatorId": "other",
+                "assigneeId": "user-123",
+                "status": "open",
+                "createdAt": "2026-09-13T12:00:00Z",
+            }
+        }
+        tasks.update_item.return_value = {
+            "Attributes": {
+                "taskId": TASK_ID,
+                "title": "Ship keys",
+                "description": "Fill the data model",
+                "creatorId": "other",
+                "assigneeId": "user-123",
+                "status": "complete",
+                "createdAt": "2026-09-13T12:00:00Z",
+                "completedAt": "2026-09-13T13:00:00Z",
+            }
+        }
+
+        with (
+            patch.object(lambda_function, "_tasks_table", return_value=tasks),
+            patch.object(lambda_function, "_now_iso", return_value="2026-09-13T13:00:00Z"),
+        ):
+            result = lambda_function.lambda_handler(
+                api_event(
+                    route_key="PATCH /tasks/{taskId}/status",
+                    body={"status": "complete"},
+                    path={"taskId": TASK_ID},
+                ),
+                None,
+            )
+
+        self.assertEqual(result["statusCode"], 200)
+        self.assertEqual(json.loads(result["body"])["task"]["status"], "complete")
+        tasks.update_item.assert_called_once()
+
+    def test_rejects_non_assignee_and_repeats_complete(self):
+        tasks = unittest.mock.Mock()
+        tasks.get_item.return_value = {
+            "Item": {
+                "taskId": TASK_ID,
+                "title": "Ship keys",
+                "description": "Fill the data model",
+                "creatorId": "user-123",
+                "assigneeId": "other",
+                "status": "open",
+                "createdAt": "2026-09-13T12:00:00Z",
+            }
+        }
+
+        with patch.object(lambda_function, "_tasks_table", return_value=tasks):
+            forbidden = lambda_function.lambda_handler(
+                api_event(
+                    route_key="PATCH /tasks/{taskId}/status",
+                    body={"status": "complete"},
+                    path={"taskId": TASK_ID},
+                ),
+                None,
+            )
+        self.assertEqual(forbidden["statusCode"], 403)
+        tasks.update_item.assert_not_called()
+
+        completed = {
+            "taskId": TASK_ID,
+            "title": "Ship keys",
+            "description": "Fill the data model",
+            "creatorId": "other",
+            "assigneeId": "user-123",
+            "status": "complete",
+            "createdAt": "2026-09-13T12:00:00Z",
+            "completedAt": "2026-09-13T13:00:00Z",
+        }
+        tasks.get_item.return_value = {"Item": completed}
+        with patch.object(lambda_function, "_tasks_table", return_value=tasks):
+            repeat = lambda_function.lambda_handler(
+                api_event(
+                    route_key="PATCH /tasks/{taskId}/status",
+                    body={"status": "complete"},
+                    path={"taskId": TASK_ID},
+                ),
+                None,
+            )
+        self.assertEqual(repeat["statusCode"], 200)
+        self.assertEqual(json.loads(repeat["body"])["task"]["completedAt"], "2026-09-13T13:00:00Z")
+        tasks.update_item.assert_not_called()
+
+
 class RemainingRouteStubTests(unittest.TestCase):
     def test_remaining_contract_routes_are_explicit_stubs(self):
         route_keys = (
-            "PATCH /tasks/{taskId}/status",
             "GET /tasks/{taskId}/notification",
             "GET /notifications",
         )

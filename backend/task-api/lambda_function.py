@@ -395,12 +395,46 @@ def get_tasks(event, user_id):
     return response(200, body)
 
 
-# TODO: PATCH /tasks/{taskId}/status accepts only {"status": "complete"}.
-# Return: 200 {"task": task}; a repeated completion returns the same task.
-# Security: only the task assignee may complete the task.
 def update_task_status(event, user_id):
-    """Stub for the future PATCH /tasks/{taskId}/status implementation."""
-    return response(501, {"message": "Not implemented"})
+    """Mark a task complete. Only the assignee may do this."""
+    LOGGER.info("PATCH /tasks/status requested")
+    task_id = (event.get("pathParameters") or {}).get("taskId")
+    body = parse_json_object(event)
+    if not task_id or body is None or set(body.keys()) != {"status"} or body.get("status") != "complete":
+        return response(400, {"message": "Invalid request"})
+
+    try:
+        item = _tasks_table().get_item(
+            Key={"taskId": task_id},
+            ConsistentRead=True,
+        ).get("Item")
+    except ClientError:
+        LOGGER.exception("Unable to load task")
+        return response(500, {"message": "Unable to update task"})
+    if not item:
+        return response(404, {"message": "Task not found"})
+    if item.get("assigneeId") != user_id:
+        LOGGER.info("PATCH /tasks/status forbidden")
+        return response(403, {"message": "Forbidden"})
+    if item.get("status") == "complete":
+        LOGGER.info("PATCH /tasks/status already complete")
+        return response(200, {"task": task_from_item(item)})
+
+    completed_at = _now_iso()
+    try:
+        updated = _tasks_table().update_item(
+            Key={"taskId": task_id},
+            UpdateExpression="SET #s = :s, completedAt = :c",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":s": "complete", ":c": completed_at},
+            ReturnValues="ALL_NEW",
+        )
+    except ClientError:
+        LOGGER.exception("Unable to update task")
+        return response(500, {"message": "Unable to update task"})
+
+    LOGGER.info("PATCH /tasks/status succeeded")
+    return response(200, {"task": task_from_item(updated.get("Attributes", {}))})
 
 
 # TODO: GET /tasks/{taskId}/notification reads the one notification outcome.
