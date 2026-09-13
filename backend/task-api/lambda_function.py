@@ -9,6 +9,8 @@ import base64
 import json
 import logging
 import os
+import re
+from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
@@ -25,10 +27,40 @@ PROFILE_FIELDS = (
     "createdAt",
 )
 
+UUID_V4 = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+)
+TASK_FIELDS = (
+    "taskId",
+    "title",
+    "description",
+    "creatorId",
+    "assigneeId",
+    "status",
+    "createdAt",
+    "completedAt",
+)
+
+
 # Open the configured DynamoDB Users table.
 def _users_table():
     """Return the Users table configured for this deployment."""
     return boto3.resource("dynamodb").Table(os.environ["USERS_TABLE"])
+
+
+def _now_iso():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _tasks_table():
+    return boto3.resource("dynamodb").Table(os.environ["TASKS_TABLE"])
+
+
+def task_from_item(item):
+    """Return public task fields; completedAt is JSON null when unset."""
+    public = {field: item[field] for field in TASK_FIELDS if field in item}
+    public.setdefault("completedAt", None)
+    return public
 
 
 # Create the HTTP response API Gateway sends back to the browser.
@@ -199,12 +231,79 @@ def get_assignees(user_id):
     return response(200, {"assignees": assignees})
 
 
-# TODO: POST /tasks accepts taskId, title, description, and assigneeId.
-# Return: 201 {"task": task}, or 200 for an identical retry.
-# Safety: verify the assignee, save the task first, then publish task.assigned.
 def create_task(event, user_id):
-    """Stub for the future POST /tasks implementation."""
-    return response(501, {"message": "Not implemented"})
+    """Create a task or return the existing identical retry. Do not publish SNS."""
+    LOGGER.info("POST /tasks requested")
+    body = parse_json_object(event)
+    if body is None:
+        return response(400, {"message": "Invalid request"})
+
+    task_id = body.get("taskId")
+    title = body.get("title")
+    description = body.get("description")
+    assignee_id = body.get("assigneeId")
+    if not isinstance(task_id, str) or not UUID_V4.fullmatch(task_id):
+        return response(400, {"message": "Invalid request"})
+    if not valid_text(title, 1, 140) or not valid_text(description, 1, 4000):
+        return response(400, {"message": "Invalid request"})
+    if not isinstance(assignee_id, str) or not assignee_id:
+        return response(400, {"message": "Invalid request"})
+
+    try:
+        assignee = get_profile(assignee_id)
+    except ClientError:
+        LOGGER.exception("Unable to load assignee")
+        return response(500, {"message": "Unable to create task"})
+    if not assignee:
+        LOGGER.info("POST /tasks assignee not found")
+        return response(404, {"message": "Assignee not found"})
+
+    created_at = _now_iso()
+    item = {
+        "taskId": task_id,
+        "title": title,
+        "description": description,
+        "creatorId": user_id,
+        "assigneeId": assignee_id,
+        "status": "open",
+        "createdAt": created_at,
+        "createdSortKey": f"{created_at}#{task_id}",
+        "notificationPublishState": "unpublished",
+    }
+
+    try:
+        _tasks_table().put_item(
+            Item=item,
+            ConditionExpression="attribute_not_exists(taskId)",
+        )
+    except ClientError as exc:
+        if exc.response["Error"]["Code"] != "ConditionalCheckFailedException":
+            LOGGER.exception("Unable to create task")
+            return response(500, {"message": "Unable to create task"})
+        try:
+            existing = _tasks_table().get_item(
+                Key={"taskId": task_id},
+                ConsistentRead=True,
+            ).get("Item")
+        except ClientError:
+            LOGGER.exception("Unable to load task")
+            return response(500, {"message": "Unable to create task"})
+        if not existing:
+            return response(500, {"message": "Unable to create task"})
+        same = (
+            existing.get("creatorId") == user_id
+            and existing.get("title") == title
+            and existing.get("description") == description
+            and existing.get("assigneeId") == assignee_id
+        )
+        if not same:
+            LOGGER.info("POST /tasks conflict")
+            return response(409, {"message": "Task conflict"})
+        LOGGER.info("POST /tasks identical retry")
+        return response(200, {"task": task_from_item(existing)})
+
+    LOGGER.info("POST /tasks created")
+    return response(201, {"task": task_from_item(item)})
 
 
 # TODO: GET /tasks requires role=assigned or role=created, plus optional pagination.

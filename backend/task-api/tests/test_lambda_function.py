@@ -28,6 +28,20 @@ def api_event(route_key="GET /me", sub="user-123", body=None, query=None, path=N
     return event
 
 
+TASK_ID = "11111111-1111-4111-8111-111111111111"
+
+
+def task_body(**overrides):
+    body = {
+        "taskId": TASK_ID,
+        "title": "Ship keys",
+        "description": "Fill the data model",
+        "assigneeId": "user-123",
+    }
+    body.update(overrides)
+    return body
+
+
 class GetProfileTests(unittest.TestCase):
     def test_returns_only_public_profile_fields(self):
         item = {
@@ -181,10 +195,119 @@ class GetAssigneesTests(unittest.TestCase):
         self.assertEqual(kwargs["ExpressionAttributeValues"][":pk"], "DIRECTORY")
 
 
+class CreateTaskTests(unittest.TestCase):
+    def test_creates_unpublished_task(self):
+        users = unittest.mock.Mock()
+        users.get_item.return_value = {"Item": {"userId": "user-123"}}
+        tasks = unittest.mock.Mock()
+        tasks.put_item.return_value = {}
+
+        with (
+            patch.object(lambda_function, "_users_table", return_value=users),
+            patch.object(lambda_function, "_tasks_table", return_value=tasks),
+            patch.object(lambda_function, "_now_iso", return_value="2026-09-13T12:00:00Z"),
+        ):
+            result = lambda_function.lambda_handler(
+                api_event(route_key="POST /tasks", body=task_body()), None
+            )
+
+        self.assertEqual(result["statusCode"], 201)
+        payload = json.loads(result["body"])["task"]
+        self.assertEqual(payload["taskId"], TASK_ID)
+        self.assertEqual(payload["creatorId"], "user-123")
+        self.assertEqual(payload["status"], "open")
+        self.assertIsNone(payload["completedAt"])
+        self.assertNotIn("createdSortKey", payload)
+        self.assertNotIn("notificationPublishState", payload)
+        item = tasks.put_item.call_args.kwargs["Item"]
+        self.assertEqual(item["notificationPublishState"], "unpublished")
+        self.assertEqual(item["createdSortKey"], f"2026-09-13T12:00:00Z#{TASK_ID}")
+        self.assertNotIn("completedAt", item)
+
+    def test_returns_existing_task_on_identical_retry(self):
+        users = unittest.mock.Mock()
+        existing = {
+            "taskId": TASK_ID,
+            "title": "Ship keys",
+            "description": "Fill the data model",
+            "creatorId": "user-123",
+            "assigneeId": "user-123",
+            "status": "open",
+            "createdAt": "2026-09-13T12:00:00Z",
+            "createdSortKey": f"2026-09-13T12:00:00Z#{TASK_ID}",
+            "notificationPublishState": "unpublished",
+        }
+        tasks = unittest.mock.Mock()
+        tasks.put_item.side_effect = ClientError(
+            {"Error": {"Code": "ConditionalCheckFailedException", "Message": "exists"}},
+            "PutItem",
+        )
+        tasks.get_item.return_value = {"Item": existing}
+
+        with (
+            patch.object(lambda_function, "_users_table", return_value=users),
+            patch.object(lambda_function, "_tasks_table", return_value=tasks),
+        ):
+            result = lambda_function.lambda_handler(
+                api_event(route_key="POST /tasks", body=task_body()), None
+            )
+
+        self.assertEqual(result["statusCode"], 200)
+        self.assertEqual(json.loads(result["body"])["task"]["taskId"], TASK_ID)
+
+    def test_rejects_conflict_bad_id_and_missing_assignee(self):
+        users = unittest.mock.Mock()
+        users.get_item.return_value = {}
+        tasks = unittest.mock.Mock()
+
+        with (
+            patch.object(lambda_function, "_users_table", return_value=users),
+            patch.object(lambda_function, "_tasks_table", return_value=tasks),
+        ):
+            missing = lambda_function.lambda_handler(
+                api_event(route_key="POST /tasks", body=task_body()), None
+            )
+            bad_id = lambda_function.lambda_handler(
+                api_event(
+                    route_key="POST /tasks",
+                    body=task_body(taskId="not-a-uuid"),
+                ),
+                None,
+            )
+
+        self.assertEqual(missing["statusCode"], 404)
+        self.assertEqual(bad_id["statusCode"], 400)
+        tasks.put_item.assert_not_called()
+
+        users.get_item.return_value = {"Item": {"userId": "other"}}
+        existing = {
+            "taskId": TASK_ID,
+            "title": "Different",
+            "description": "Fill the data model",
+            "creatorId": "user-123",
+            "assigneeId": "other",
+            "status": "open",
+            "createdAt": "2026-09-13T12:00:00Z",
+        }
+        tasks.put_item.side_effect = ClientError(
+            {"Error": {"Code": "ConditionalCheckFailedException", "Message": "exists"}},
+            "PutItem",
+        )
+        tasks.get_item.return_value = {"Item": existing}
+
+        with (
+            patch.object(lambda_function, "_users_table", return_value=users),
+            patch.object(lambda_function, "_tasks_table", return_value=tasks),
+        ):
+            conflict = lambda_function.lambda_handler(
+                api_event(route_key="POST /tasks", body=task_body()), None
+            )
+        self.assertEqual(conflict["statusCode"], 409)
+
+
 class RemainingRouteStubTests(unittest.TestCase):
     def test_remaining_contract_routes_are_explicit_stubs(self):
         route_keys = (
-            "POST /tasks",
             "GET /tasks",
             "PATCH /tasks/{taskId}/status",
             "GET /tasks/{taskId}/notification",
