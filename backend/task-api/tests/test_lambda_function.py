@@ -305,10 +305,87 @@ class CreateTaskTests(unittest.TestCase):
         self.assertEqual(conflict["statusCode"], 409)
 
 
+class GetTasksTests(unittest.TestCase):
+    def test_lists_assigned_newest_first_without_token_when_complete(self):
+        tasks = unittest.mock.Mock()
+        tasks.query.return_value = {
+            "Items": [
+                {
+                    "taskId": TASK_ID,
+                    "title": "Ship keys",
+                    "description": "Fill the data model",
+                    "creatorId": "other",
+                    "assigneeId": "user-123",
+                    "status": "open",
+                    "createdAt": "2026-09-13T12:00:00Z",
+                    "createdSortKey": f"2026-09-13T12:00:00Z#{TASK_ID}",
+                    "notificationPublishState": "unpublished",
+                }
+            ]
+        }
+
+        with patch.object(lambda_function, "_tasks_table", return_value=tasks):
+            result = lambda_function.lambda_handler(
+                api_event(route_key="GET /tasks", query={"role": "assigned"}),
+                None,
+            )
+
+        self.assertEqual(result["statusCode"], 200)
+        body = json.loads(result["body"])
+        self.assertEqual(len(body["tasks"]), 1)
+        self.assertNotIn("nextToken", body)
+        self.assertNotIn("notificationPublishState", body["tasks"][0])
+        kwargs = tasks.query.call_args.kwargs
+        self.assertEqual(kwargs["IndexName"], "assigneeId-createdSortKey")
+        self.assertFalse(kwargs["ScanIndexForward"])
+        self.assertEqual(kwargs["Limit"], 20)
+
+    def test_lists_created_and_returns_next_token(self):
+        tasks = unittest.mock.Mock()
+        tasks.query.return_value = {
+            "Items": [],
+            "LastEvaluatedKey": {
+                "creatorId": "user-123",
+                "createdSortKey": f"2026-09-13T12:00:00Z#{TASK_ID}",
+                "taskId": TASK_ID,
+            },
+        }
+
+        with patch.object(lambda_function, "_tasks_table", return_value=tasks):
+            result = lambda_function.lambda_handler(
+                api_event(route_key="GET /tasks", query={"role": "created", "limit": "2"}),
+                None,
+            )
+
+        self.assertEqual(result["statusCode"], 200)
+        body = json.loads(result["body"])
+        self.assertIn("nextToken", body)
+        kwargs = tasks.query.call_args.kwargs
+        self.assertEqual(kwargs["IndexName"], "creatorId-createdSortKey")
+        self.assertEqual(kwargs["Limit"], 2)
+
+    def test_rejects_bad_role_and_token(self):
+        missing = lambda_function.lambda_handler(
+            api_event(route_key="GET /tasks", query={}), None
+        )
+        bad_role = lambda_function.lambda_handler(
+            api_event(route_key="GET /tasks", query={"role": "owner"}), None
+        )
+        bad_token = lambda_function.lambda_handler(
+            api_event(
+                route_key="GET /tasks",
+                query={"role": "assigned", "nextToken": "%%%"},
+            ),
+            None,
+        )
+        self.assertEqual(missing["statusCode"], 400)
+        self.assertEqual(bad_role["statusCode"], 400)
+        self.assertEqual(bad_token["statusCode"], 400)
+
+
 class RemainingRouteStubTests(unittest.TestCase):
     def test_remaining_contract_routes_are_explicit_stubs(self):
         route_keys = (
-            "GET /tasks",
             "PATCH /tasks/{taskId}/status",
             "GET /tasks/{taskId}/notification",
             "GET /notifications",

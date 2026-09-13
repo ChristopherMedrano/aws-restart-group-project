@@ -41,6 +41,9 @@ TASK_FIELDS = (
     "completedAt",
 )
 
+DEFAULT_LIMIT = 20
+MAX_LIMIT = 50
+
 
 # Open the configured DynamoDB Users table.
 def _users_table():
@@ -306,12 +309,86 @@ def create_task(event, user_id):
     return response(201, {"task": task_from_item(item)})
 
 
-# TODO: GET /tasks requires role=assigned or role=created, plus optional pagination.
-# Return: 200 {"tasks": [...], "nextToken": "..."} when another page exists.
-# Security: list only tasks assigned to or created by the authenticated caller.
+def encode_next_token(last_evaluated_key):
+    if not last_evaluated_key:
+        return None
+    return base64.urlsafe_b64encode(
+        json.dumps(last_evaluated_key, separators=(",", ":")).encode("utf-8")
+    ).decode("ascii")
+
+
+def decode_next_token(raw):
+    try:
+        padded = raw + "=" * ((4 - len(raw) % 4) % 4)
+        data = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+    except (ValueError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def parse_limit(query):
+    raw = (query or {}).get("limit")
+    if raw in (None, ""):
+        return DEFAULT_LIMIT, None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None, response(400, {"message": "Invalid request"})
+    if value < 1 or value > MAX_LIMIT:
+        return None, response(400, {"message": "Invalid request"})
+    return value, None
+
+
 def get_tasks(event, user_id):
-    """Stub for the future GET /tasks implementation."""
-    return response(501, {"message": "Not implemented"})
+    """List the caller's created or assigned tasks, newest first."""
+    LOGGER.info("GET /tasks requested")
+    query = event.get("queryStringParameters") or {}
+    role = query.get("role")
+    if role == "created":
+        index_name = "creatorId-createdSortKey"
+        pk_name = "creatorId"
+    elif role == "assigned":
+        index_name = "assigneeId-createdSortKey"
+        pk_name = "assigneeId"
+    else:
+        return response(400, {"message": "Invalid request"})
+
+    limit, error = parse_limit(query)
+    if error:
+        return error
+
+    start_key = None
+    token = query.get("nextToken")
+    if token:
+        start_key = decode_next_token(token)
+        if start_key is None:
+            return response(400, {"message": "Invalid request"})
+
+    kwargs = {
+        "IndexName": index_name,
+        "KeyConditionExpression": "#pk = :pk",
+        "ExpressionAttributeNames": {"#pk": pk_name},
+        "ExpressionAttributeValues": {":pk": user_id},
+        "ScanIndexForward": False,
+        "Limit": limit,
+    }
+    if start_key:
+        kwargs["ExclusiveStartKey"] = start_key
+
+    try:
+        page = _tasks_table().query(**kwargs)
+    except ClientError:
+        LOGGER.exception("Unable to list tasks")
+        return response(500, {"message": "Unable to list tasks"})
+
+    body = {"tasks": [task_from_item(item) for item in page.get("Items", [])]}
+    next_token = encode_next_token(page.get("LastEvaluatedKey"))
+    if next_token:
+        body["nextToken"] = next_token
+    LOGGER.info("GET /tasks succeeded")
+    return response(200, body)
 
 
 # TODO: PATCH /tasks/{taskId}/status accepts only {"status": "complete"}.
