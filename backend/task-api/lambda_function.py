@@ -5,6 +5,7 @@ The handler therefore treats the JWT `sub` claim as the caller identity and
 never accepts a user ID from a request body or query parameter.
 """
 
+import base64
 import json
 import logging
 import os
@@ -52,6 +53,33 @@ def caller_id(event):
     )
 
 
+def parse_json_object(event):
+    """Parse the HTTP API body as a JSON object, or return None."""
+    raw = event.get("body")
+    if raw in (None, ""):
+        return None
+    if event.get("isBase64Encoded"):
+        try:
+            raw = base64.b64decode(raw).decode("utf-8")
+        except (ValueError, UnicodeDecodeError):
+            return None
+    try:
+        data = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def valid_text(value, min_bytes, max_bytes):
+    """Return True when value is a non-blank string within UTF-8 byte bounds and has no CR."""
+    if not isinstance(value, str) or "\r" in value or value.strip() == "":
+        return False
+    size = len(value.encode("utf-8"))
+    return min_bytes <= size <= max_bytes
+
+
 # Remove internal DynamoDB attributes before returning a user profile.
 def profile_from_item(item):
     """Return only the profile fields allowed by the public API."""
@@ -87,12 +115,58 @@ def get_me(user_id):
     return response(200, {"user": profile_from_item(item)})
 
 
-# TODO: PATCH /me accepts displayName and/or emailNotificationsEnabled.
-# Return: 200 {"user": user} with the updated profile.
-# Security: update only the authenticated caller identified by the JWT sub.
-def update_me(user_id):
-    """Stub for the future PATCH /me implementation."""
-    return response(501, {"message": "Not implemented"})
+def update_me(event, user_id):
+    """Update the authenticated caller's display name and/or email preference."""
+    LOGGER.info("PATCH /me requested")
+    body = parse_json_object(event)
+    if body is None:
+        return response(400, {"message": "Invalid request"})
+
+    has_name = "displayName" in body
+    has_pref = "emailNotificationsEnabled" in body
+    if not has_name and not has_pref:
+        return response(400, {"message": "Invalid request"})
+
+    names = {}
+    values = {}
+    sets = []
+    if has_name:
+        display_name = body["displayName"]
+        if not valid_text(display_name, 1, 140):
+            return response(400, {"message": "Invalid request"})
+        sets.append("#dn = :dn")
+        sets.append("displayNameKey = :dnk")
+        names["#dn"] = "displayName"
+        values[":dn"] = display_name
+        values[":dnk"] = f"{display_name.lower()}#{user_id}"
+    if has_pref:
+        enabled = body["emailNotificationsEnabled"]
+        if not isinstance(enabled, bool):
+            return response(400, {"message": "Invalid request"})
+        sets.append("emailNotificationsEnabled = :en")
+        values[":en"] = enabled
+
+    update_kwargs = {
+        "Key": {"userId": user_id},
+        "UpdateExpression": "SET " + ", ".join(sets),
+        "ExpressionAttributeValues": values,
+        "ConditionExpression": "attribute_exists(userId)",
+        "ReturnValues": "ALL_NEW",
+    }
+    if names:
+        update_kwargs["ExpressionAttributeNames"] = names
+
+    try:
+        updated = _users_table().update_item(**update_kwargs)
+    except ClientError as exc:
+        if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            LOGGER.info("PATCH /me profile not found")
+            return response(404, {"message": "Profile not found"})
+        LOGGER.exception("Unable to update profile")
+        return response(500, {"message": "Unable to update profile"})
+
+    LOGGER.info("PATCH /me succeeded")
+    return response(200, {"user": profile_from_item(updated.get("Attributes", {}))})
 
 
 # TODO: GET /assignees reads the Users directory GSI.
@@ -154,7 +228,7 @@ def lambda_handler(event, context):
     if route_key == "GET /me":
         return get_me(user_id)
     if route_key == "PATCH /me":
-        return update_me(user_id)
+        return update_me(event, user_id)
     if route_key == "GET /assignees":
         return get_assignees(user_id)
     if route_key == "POST /tasks":
