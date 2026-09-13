@@ -13,12 +13,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import lambda_function
 
 
-def api_event(route_key="GET /me", sub="user-123"):
+def api_event(route_key="GET /me", sub="user-123", body=None, query=None, path=None):
     event = {"routeKey": route_key}
     if sub is not None:
         event["requestContext"] = {
             "authorizer": {"jwt": {"claims": {"sub": sub}}}
         }
+    if body is not None:
+        event["body"] = body if isinstance(body, str) else json.dumps(body)
+    if query is not None:
+        event["queryStringParameters"] = query
+    if path is not None:
+        event["pathParameters"] = path
     return event
 
 
@@ -99,14 +105,49 @@ class GetProfileTests(unittest.TestCase):
         )
 
 
-class UpdateProfileStubTests(unittest.TestCase):
-    def test_patch_profile_is_an_explicit_stub(self):
-        result = lambda_function.lambda_handler(
-            api_event(route_key="PATCH /me"), None
-        )
+class UpdateProfileTests(unittest.TestCase):
+    def test_updates_display_name_and_directory_key(self):
+        table = unittest.mock.Mock()
+        table.update_item.return_value = {
+            "Attributes": {
+                "userId": "user-123",
+                "displayName": "Jordan",
+                "email": "jordan@example.test",
+                "emailNotificationsEnabled": True,
+                "createdAt": "2026-09-11T00:00:00Z",
+                "directoryPk": "DIRECTORY",
+                "displayNameKey": "jordan#user-123",
+            }
+        }
 
-        self.assertEqual(result["statusCode"], 501)
-        self.assertEqual(json.loads(result["body"]), {"message": "Not implemented"})
+        with patch.object(lambda_function, "_users_table", return_value=table):
+            result = lambda_function.lambda_handler(
+                api_event(route_key="PATCH /me", body={"displayName": "Jordan"}),
+                None,
+            )
+
+        self.assertEqual(result["statusCode"], 200)
+        self.assertEqual(
+            json.loads(result["body"])["user"]["displayName"], "Jordan"
+        )
+        kwargs = table.update_item.call_args.kwargs
+        self.assertEqual(kwargs["Key"], {"userId": "user-123"})
+        self.assertIn("displayNameKey", kwargs["UpdateExpression"])
+        self.assertEqual(kwargs["ExpressionAttributeValues"][":dnk"], "jordan#user-123")
+        self.assertNotIn("email", json.dumps(kwargs["ExpressionAttributeValues"]))
+
+    def test_rejects_empty_patch_and_invalid_name(self):
+        with patch.object(lambda_function, "_users_table") as users:
+            empty = lambda_function.lambda_handler(
+                api_event(route_key="PATCH /me", body={}), None
+            )
+            blank = lambda_function.lambda_handler(
+                api_event(route_key="PATCH /me", body={"displayName": "   "}),
+                None,
+            )
+        self.assertEqual(empty["statusCode"], 400)
+        self.assertEqual(blank["statusCode"], 400)
+        users.assert_not_called()
 
 
 class RemainingRouteStubTests(unittest.TestCase):
