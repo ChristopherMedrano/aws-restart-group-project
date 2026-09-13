@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: "S3NT shared-dev app stack (first delivery: GET /me)"
+Description: "S3NT shared-dev app stack (Task API routes; no SNS)"
 
 Parameters:
   LocalOrigin:
@@ -45,6 +45,82 @@ Resources:
             - AttributeName: directoryPk
               KeyType: HASH
             - AttributeName: displayNameKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: S3NT
+        - Key: Environment
+          Value: shared-dev
+        - Key: ManagedBy
+          Value: SAM
+
+  TasksTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: taskId
+          AttributeType: S
+        - AttributeName: creatorId
+          AttributeType: S
+        - AttributeName: assigneeId
+          AttributeType: S
+        - AttributeName: createdSortKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: taskId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: creatorId-createdSortKey
+          KeySchema:
+            - AttributeName: creatorId
+              KeyType: HASH
+            - AttributeName: createdSortKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: assigneeId-createdSortKey
+          KeySchema:
+            - AttributeName: assigneeId
+              KeyType: HASH
+            - AttributeName: createdSortKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: S3NT
+        - Key: Environment
+          Value: shared-dev
+        - Key: ManagedBy
+          Value: SAM
+
+  NotificationsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: taskId
+          AttributeType: S
+        - AttributeName: historyRecipientId
+          AttributeType: S
+        - AttributeName: historySortKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: taskId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: historyRecipientId-historySortKey
+          KeySchema:
+            - AttributeName: historyRecipientId
+              KeyType: HASH
+            - AttributeName: historySortKey
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
@@ -136,6 +212,8 @@ Resources:
           - !Ref LocalOrigin
         AllowMethods:
           - GET
+          - POST
+          - PATCH
           - OPTIONS
         AllowHeaders:
           - authorization
@@ -152,15 +230,93 @@ Resources:
       FunctionName: s3nt-app-task-api
       CodeUri: ../../backend/task-api/
       Handler: lambda_function.lambda_handler
+      Environment:
+        Variables:
+          TASKS_TABLE: !Ref TasksTable
+          NOTIFICATIONS_TABLE: !Ref NotificationsTable
       Policies:
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TasksTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref NotificationsTable
       Events:
         GetMe:
           Type: HttpApi
           Properties:
             ApiId: !Ref HttpApi
             Path: /me
+            Method: GET
+            Auth:
+              Authorizer: CognitoJwt
+              AuthorizationScopes:
+                - shared-task-api/access
+        PatchMe:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /me
+            Method: PATCH
+            Auth:
+              Authorizer: CognitoJwt
+              AuthorizationScopes:
+                - shared-task-api/access
+        GetAssignees:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /assignees
+            Method: GET
+            Auth:
+              Authorizer: CognitoJwt
+              AuthorizationScopes:
+                - shared-task-api/access
+        PostTasks:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks
+            Method: POST
+            Auth:
+              Authorizer: CognitoJwt
+              AuthorizationScopes:
+                - shared-task-api/access
+        GetTasks:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks
+            Method: GET
+            Auth:
+              Authorizer: CognitoJwt
+              AuthorizationScopes:
+                - shared-task-api/access
+        PatchTaskStatus:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/{taskId}/status
+            Method: PATCH
+            Auth:
+              Authorizer: CognitoJwt
+              AuthorizationScopes:
+                - shared-task-api/access
+        GetTaskNotification:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /tasks/{taskId}/notification
+            Method: GET
+            Auth:
+              Authorizer: CognitoJwt
+              AuthorizationScopes:
+                - shared-task-api/access
+        GetNotifications:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /notifications
             Method: GET
             Auth:
               Authorizer: CognitoJwt
