@@ -1,0 +1,3 @@
+# boto3 and botocore are available in the Python Lambda runtime. Pin them for
+# local development and unit tests in backend/requirements.txt; do not vendor
+# them in the Lambda package.
