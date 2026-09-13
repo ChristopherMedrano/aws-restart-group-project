@@ -7,3 +7,5 @@ _planning/
 *.txt
 !requirements.txt
 !requirements-dev.txt
+.aws-sam/
+frontend/config.local.js

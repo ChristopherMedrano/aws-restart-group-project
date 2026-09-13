@@ -1,0 +1,2 @@
+# boto3 and botocore are provided by the Python Lambda runtime. The local-test
+# pin remains in backend/requirements.txt; do not vendor it in this package.
