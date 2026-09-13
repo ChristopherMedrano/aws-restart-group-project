@@ -1,5 +1,6 @@
 """Unit tests for the deployed GET /me behavior."""
 
+import base64
 import json
 import sys
 import unittest
@@ -381,6 +382,33 @@ class GetTasksTests(unittest.TestCase):
         self.assertEqual(missing["statusCode"], 400)
         self.assertEqual(bad_role["statusCode"], 400)
         self.assertEqual(bad_token["statusCode"], 400)
+
+    def test_rejects_malformed_next_token_on_query_validation(self):
+        bad_token = base64.urlsafe_b64encode(
+            json.dumps({"not": "a-key"}, separators=(",", ":")).encode("ascii")
+        ).decode("ascii")
+        tasks = unittest.mock.Mock()
+        tasks.query.side_effect = ClientError(
+            {
+                "Error": {
+                    "Code": "ValidationException",
+                    "Message": "Invalid ExclusiveStartKey",
+                }
+            },
+            "Query",
+        )
+
+        with patch.object(lambda_function, "_tasks_table", return_value=tasks):
+            result = lambda_function.lambda_handler(
+                api_event(
+                    route_key="GET /tasks",
+                    query={"role": "assigned", "nextToken": bad_token},
+                ),
+                None,
+            )
+
+        self.assertEqual(result["statusCode"], 400)
+        self.assertEqual(json.loads(result["body"]), {"message": "Invalid request"})
 
 
 class RemainingRouteStubTests(unittest.TestCase):
