@@ -44,11 +44,10 @@ while local development remains supported.
 
 ### Temporary deployed authentication demo
 
-The deployed CloudFront demo currently completes Cognito's authorization-code
-return at `/`, calls protected `GET /me` with the access token, and displays
-only the returned display name and user ID. It is a validation stub, not the
-planned routed SPA: the routes and screens in this specification remain work to
-be completed.
+Console CloudFront `https://d22amkzcsmugnp.cloudfront.net/` is leftover
+prototype. Localhost (`config.local.js`) uses the SAM Cognito pool and Task API.
+The routed SPA exists; Assigned/Created/Create/Notifications screens are not
+wired to those API routes yet. Profile uses `GET /me`.
 
 Also build these in-app recovery states. They are frontend-owned screens, not
 separate normal routes and not Cognito-hosted pages.
