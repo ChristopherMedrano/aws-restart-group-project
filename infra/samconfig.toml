@@ -24,3 +24,4 @@ stack_name = "s3nt-app"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 s3_bucket = "s3nt-bootstrap-artifactbucket-agk6tbwghk9m"
+role_arn = "arn:aws:iam::190285489911:role/s3nt-shared-dev-cfn-execution"
