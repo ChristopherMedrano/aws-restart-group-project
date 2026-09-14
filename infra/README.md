@@ -11,7 +11,8 @@ are in the local runbook (`_planning/sam-greenfield/runbook.md`), not here.
 | `samconfig.toml` | region, stack names, artifact bucket, CloudFormation `role_arn` |
 
 Do not commit AWS profile names or `TrustedPrincipalArns`. Do not create IAM
-access keys. Do not attach `AdministratorAccess`.
+access keys. Do not attach `AdministratorAccess`. Do not use `sam sync`.
+Shared-dev code changes go only through `sam deploy` and a reviewed change set.
 
 ## Login
 
@@ -48,13 +49,17 @@ sam deploy --config-env app --config-file samconfig.toml
 
 Caller must be the deployer role. App deploy must not set `template_file`
 (uses `.aws-sam/build`). Rebuild after Lambda or `app/template.yaml` changes.
-If the change set is empty, do not execute it.
+If the change set is empty, do not execute it. Do not `sam sync` against
+shared-dev.
 
 If `AccessDenied`, use the `User:` ARN: CloudFormation execution role vs
 deployer. Fix that role, then update bootstrap as root.
 
 ## Local frontend
 
-From `frontend/`: `npx --yes serve -s . -l 5173`. Runtime ids go in gitignored
-`frontend/config.local.js` (`cognitoDomain`, `clientId`, `apiBaseUrl`,
-`redirectUri`, `logoutUri`, `scope`). Do not commit tokens.
+From repo `frontend/`:
+
+```bash
+npx --yes serve -s . -l 5173
+```
+Runtime ids go in gitignored `frontend/config.local.js` (`cognitoDomain`, `clientId`, `apiBaseUrl`, `redirectUri`, `logoutUri`, `scope`). Do not commit tokens.

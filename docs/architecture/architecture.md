@@ -13,7 +13,9 @@ so everyone can see how the pieces fit together.
 
 ## Diagram
 
-This is the implemented architecture diagram. Direct arrows show the expected
+This is the approved target architecture. SNS, SQS failure queues, SES send,
+alarms, and SAM CloudFront (`s3nt-web`) are not in the live `s3nt-app` stack
+yet. Direct arrows show the expected
 request or service-invocation path; dotted arrows show failure retention. The
 `taskId` is created by the client, stored with the Task, and included in the
 `task.assigned` event so the Notification Lambda can record one outcome for

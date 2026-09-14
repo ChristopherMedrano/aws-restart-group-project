@@ -39,12 +39,9 @@ Users sign in before viewing or changing tasks. Each person can update only thei
 
 ## Project status
 
-This is an AWS re/Start group project. The team has completed the initial
-planning and architecture baseline and is moving into shared AWS and
-application foundations. Cognito sign-in, the frontend SPA shell, and the
-authenticated `GET /me` foundation are deployed. The `backend/` directory now
-contains the version-controlled Task API Lambda source and its initial tests;
-the remaining backend routes are still planned.
+Planning and architecture for the MVP are complete. Implementation is in
+progress on shared-dev. Current work, owners, and remaining items are tracked
+in the [GitHub issue tracker](https://github.com/ChristopherMedrano/aws-restart-group-project/issues).
 
 ## Reference architecture diagram
 
