@@ -1,0 +1,1 @@
+# Runtime provides boto3. Empty file so sam build has a requirements path.

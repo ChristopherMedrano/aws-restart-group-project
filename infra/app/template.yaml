@@ -269,6 +269,32 @@ Resources:
         Environment: shared-dev
         ManagedBy: SAM
 
+  HttpApiCorsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: s3nt-app-http-api-cors
+      CodeUri: ../../backend/http-api-cors/
+      Handler: lambda_function.lambda_handler
+      Timeout: 30
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - apigateway:GET
+                - apigateway:PATCH
+              Resource: !Sub "arn:aws:apigateway:${AWS::Region}::/apis/*"
+
+  HttpApiCors:
+    Type: Custom::HttpApiCors
+    Properties:
+      ServiceToken: !GetAtt HttpApiCorsFunction.Arn
+      ApiId: !Ref HttpApi
+      AllowOrigins: !If
+        - HasDeployedOrigin
+        - - !Ref LocalOrigin
+          - !Ref DeployedOrigin
+        - - !Ref LocalOrigin
+
   TaskApiFunction:
     Type: AWS::Serverless::Function
     Properties:
