@@ -22,11 +22,11 @@ tokens.
 - Uses Cognito managed login with authorization code + PKCE.
 - Keeps the Cognito session in `sessionStorage`.
 - Reads public runtime config from `config.local.js` (`window.S3NT_CONFIG`).
-- Calls protected `GET /me` and shows the signed-in user's display name and ID
-  on the Profile route.
-- Assigned Tasks, Created Tasks, Create Task, and Notifications are shells.
-  The Task API exists on `s3nt-app`; this SPA does not call those routes yet.
-  Do not use sample data or browser task storage.
+- Calls the Task API with the Cognito access token: profile (`GET`/`PATCH /me`),
+  assignees, task create/list/complete, and notification reads.
+- Does not use sample data or browser task storage. Notification history is
+  empty until the Notification Lambda writes. POST `/tasks` does not send email
+  yet.
 
 ## Files
 
@@ -36,7 +36,8 @@ frontend/
 ├── index.html         # SPA shell
 ├── styles.css         # shared visual design
 └── scripts/
-    ├── auth.js        # Cognito PKCE, session, logout, and GET /me client
+    ├── api.js         # protected Task API client
+    ├── auth.js        # Cognito PKCE, session, and logout
     └── app.js         # routing and page rendering
 ```
 

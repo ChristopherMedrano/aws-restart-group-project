@@ -1,19 +1,27 @@
-/* Public SPA configuration. This browser client intentionally has no secret. */
-const AUTH_CONFIG = Object.freeze(window.S3NT_CONFIG || {
-    cognitoDomain: "https://us-east-2e4zskjgi6.auth.us-east-2.amazoncognito.com",
-    clientId: "3shfthangguj7gion7a2afia6e",
-    apiBaseUrl: "https://o7f51vbeyh.execute-api.us-east-2.amazonaws.com",
-    redirectUri: `${window.location.origin}/`,
-    logoutUri: `${window.location.origin}/`,
-    scope: "openid email profile shared-task-api/access"
-});
+/* Cognito PKCE + session. No client secret in the browser.
+   Pool/client/API ids come from config.local.js (window.S3NT_CONFIG). */
+const AUTH_CONFIG = Object.freeze(window.S3NT_CONFIG || {});
 
+function requireConfig() {
+    if (
+        !AUTH_CONFIG.cognitoDomain
+        || !AUTH_CONFIG.clientId
+        || !AUTH_CONFIG.redirectUri
+        || !AUTH_CONFIG.logoutUri
+        || !AUTH_CONFIG.scope
+    ) {
+        throw new Error("Runtime configuration is missing or invalid.");
+    }
+}
+
+// PKCE verifier lives here until /callback; tokens after that.
 const TRANSACTION_KEY = "s3nt.cognito.transaction";
 const SESSION_KEY = "s3nt.cognito.session";
 
 function bytesToBase64Url(bytes) {
     let binary = "";
     bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+    // Cognito wants this flavor: -/_ and no = padding.
     return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
 }
 
@@ -44,6 +52,7 @@ function idTokenPayload(idToken) {
 function getSession() {
     const session = readJsonStorage(SESSION_KEY);
     if (!session?.accessToken || !session.receivedAt || !session.expiresIn) return null;
+    // Cognito expires_in is seconds. Easy to treat it as ms and never expire.
     if (Date.now() >= session.receivedAt + (session.expiresIn * 1000)) {
         sessionStorage.removeItem(SESSION_KEY);
         return null;
@@ -52,12 +61,14 @@ function getSession() {
 }
 
 async function startSignIn() {
+    requireConfig();
     if (!window.isSecureContext || !window.crypto?.subtle) {
         throw new Error("Sign-in requires HTTPS (or localhost) and a modern browser.");
     }
     const verifier = randomValue();
-    const state = randomValue();
-    const nonce = randomValue();
+    const state = randomValue(); // CSRF check on the way back
+    const nonce = randomValue(); // must match the id_token later
+    // Keep verifier in sessionStorage so the token swap can prove we started this login.
     sessionStorage.setItem(TRANSACTION_KEY, JSON.stringify({ verifier, state, nonce }));
     const query = new URLSearchParams({
         response_type: "code",
@@ -72,22 +83,13 @@ async function startSignIn() {
     window.location.assign(`${AUTH_CONFIG.cognitoDomain}/oauth2/authorize?${query}`);
 }
 
-async function loadProfile(accessToken = getSession()?.accessToken) {
-    if (!accessToken) throw new Error("Your session has expired. Please sign in again.");
-    const response = await fetch(`${AUTH_CONFIG.apiBaseUrl}/me`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    if (!response.ok) {
-        if (response.status === 401) throw new Error("Your session has expired. Please sign in again.");
-        if (response.status === 404) throw new Error("No application profile was found for this signed-in user.");
-        throw new Error(`The profile request failed (${response.status}).`);
-    }
-    const payload = await response.json();
-    if (!payload?.user?.userId) throw new Error("The profile response was invalid.");
-    return payload.user;
+async function loadProfile() {
+    // Defined in api.js; both scripts are defer so this is safe at call time.
+    return window.S3NTApi.getMe();
 }
 
 async function finishSignIn(code, returnedState) {
+    requireConfig();
     const transaction = readJsonStorage(TRANSACTION_KEY);
     if (!transaction || returnedState !== transaction.state) {
         throw new Error("The sign-in response could not be verified. Please sign in again.");
@@ -110,6 +112,7 @@ async function finishSignIn(code, returnedState) {
     if (idTokenPayload(tokens.id_token).nonce !== transaction.nonce) {
         throw new Error("The sign-in response could not be verified. Please sign in again.");
     }
+    // API Gateway JWT authorizer wants the access token, not the id token.
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({
         accessToken: tokens.access_token,
         idToken: tokens.id_token,
@@ -118,8 +121,9 @@ async function finishSignIn(code, returnedState) {
         receivedAt: Date.now()
     }));
     sessionStorage.removeItem(TRANSACTION_KEY);
+    // Drop ?code= from the address bar so a refresh doesn't try to reuse it.
     window.history.replaceState({}, document.title, AUTH_CONFIG.redirectUri);
-    return loadProfile(tokens.access_token);
+    return loadProfile();
 }
 
 async function handleCallback() {
@@ -129,15 +133,28 @@ async function handleCallback() {
         window.history.replaceState({}, document.title, AUTH_CONFIG.redirectUri);
         throw new Error("Cognito cancelled or rejected the sign-in. Please try again.");
     }
-    if (!query.has("code")) return null;
+    if (!query.has("code")) return null; // normal visit, not a Cognito return
     return finishSignIn(query.get("code"), query.get("state"));
 }
 
-function logout() {
+// Local sign-out only (API 401). logout() also hits Cognito hosted logout.
+function expireSession() {
     sessionStorage.removeItem(TRANSACTION_KEY);
     sessionStorage.removeItem(SESSION_KEY);
+}
+
+function logout() {
+    requireConfig();
+    expireSession();
     const query = new URLSearchParams({ client_id: AUTH_CONFIG.clientId, logout_uri: AUTH_CONFIG.logoutUri });
     window.location.assign(`${AUTH_CONFIG.cognitoDomain}/logout?${query}`);
 }
 
-window.S3NTAuth = Object.freeze({ startSignIn, handleCallback, getSession, loadProfile, logout });
+window.S3NTAuth = Object.freeze({
+    startSignIn,
+    handleCallback,
+    getSession,
+    loadProfile,
+    expireSession,
+    logout
+});
