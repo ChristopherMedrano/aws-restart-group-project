@@ -24,6 +24,10 @@ tokens.
 - Reads public runtime config from `config.local.js` (`window.S3NT_CONFIG`).
 - Calls the Task API with the Cognito access token: profile (`GET`/`PATCH /me`),
   assignees, task create/list/complete, and notification reads.
+- Create Task retries `POST /tasks` with the same UUID if the API returns
+  `503 EVENT_PUBLISH_FAILED` (three extra attempts, then a manual retry). After
+  save, it polls `GET /tasks/{taskId}/notification` every two seconds for 30
+  seconds.
 - Does not use sample data or browser task storage. Notification history is
   empty until the Notification Lambda writes.
 

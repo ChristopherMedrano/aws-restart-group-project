@@ -80,6 +80,11 @@ async function createTask(task) {
     return request("POST", "/tasks", task); // caller includes taskId (uuid v4)
 }
 
+// POST /tasks wrote the item but SNS didn't. Caller retries the same body.
+function isPublishFailed(error) {
+    return error?.status === 503 && error.payload?.code === "EVENT_PUBLISH_FAILED";
+}
+
 // role is "assigned" or "created". nextToken is optional (Load more).
 async function listTasks(role, nextToken) {
     const payload = await request("GET", queryPath("/tasks", { role, nextToken }));
@@ -117,5 +122,6 @@ window.S3NTApi = Object.freeze({
     listTasks,
     completeTask,
     getTaskNotification,
-    listNotifications
+    listNotifications,
+    isPublishFailed
 });
