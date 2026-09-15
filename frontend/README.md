@@ -49,7 +49,9 @@ frontend/
 Local callbacks are `http://localhost:5173/callback` and sign-out
 `http://localhost:5173/`. When `s3nt-web` exists, the Cognito app client must
 list the exact CloudFront origin as callback and sign-out, and API CORS must
-allow that origin and the `authorization` header.
+allow that origin and the `authorization` header. Pass that origin to
+`s3nt-app` as `DeployedOrigin`. Upload with `infra/web/upload-spa.sh` so the
+hosted `index.html` loads `config.js` (not `config.local.js`).
 
 The app uses History API paths such as `/tasks/assigned`. CloudFront must
 return `index.html` for missing SPA paths. Architecture also calls for hashed
