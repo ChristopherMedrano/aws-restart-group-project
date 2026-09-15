@@ -21,6 +21,12 @@ const OUTCOME_TEXT = Object.freeze({
     unknown: "Delivery could not be confirmed"
 });
 
+const PUBLISH_AUTO_RETRIES = 3; // extra POSTs after a 503 EVENT_PUBLISH_FAILED
+const POLL_MS = 2000;
+const POLL_FOR_MS = 30000;
+
+let createPollTimer = null;
+
 function hasRuntimeConfig() {
     const config = window.S3NT_CONFIG || {};
     return Boolean(
@@ -48,6 +54,23 @@ function escapeHtml(value) {
 // Backend limits are UTF-8 bytes, not JS string.length (emoji etc.).
 function utf8Bytes(value) {
     return new TextEncoder().encode(value).length;
+}
+
+function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function stopCreatePoll() {
+    if (createPollTimer) {
+        clearTimeout(createPollTimer);
+        createPollTimer = null;
+    }
+}
+
+function outcomeLabel(notification) {
+    const status = notification?.status;
+    if (status && OUTCOME_TEXT[status]) return OUTCOME_TEXT[status];
+    return "Notification processing";
 }
 
 function validText(value, minBytes, maxBytes) {
@@ -159,6 +182,11 @@ function renderCreateForm(assignees, message) {
               <button type="submit" class="primary-button">Create task</button>
             </div>
             ${status}
+            <p class="settings-message" id="create-outcome" hidden></p>
+            <div class="settings-actions">
+              <button type="button" class="primary-button" id="create-retry-publish" hidden>Retry notification</button>
+              <button type="button" class="nav-link" id="create-refresh-outcome" hidden>Refresh notification</button>
+            </div>
           </form>
         </section>`
     );
@@ -251,6 +279,9 @@ function bindCreateForm(assignees) {
     const description = document.getElementById("task-description");
     const count = document.getElementById("description-count");
     const status = document.getElementById("create-status");
+    const outcome = document.getElementById("create-outcome");
+    const retryPublish = document.getElementById("create-retry-publish");
+    const refreshOutcome = document.getElementById("create-refresh-outcome");
     const updateCount = () => {
         // Label says "characters" in the spec; we still count UTF-8 bytes.
         count.textContent = `${utf8Bytes(description.value).toLocaleString()} / 4,000 characters`;
@@ -260,6 +291,90 @@ function bindCreateForm(assignees) {
     document.getElementById("assign-self").addEventListener("click", () => {
         document.getElementById("task-assignee").value = currentUser.userId;
     });
+
+    async function pollOutcome(taskId, deadline, seq) {
+        if (seq !== renderSeq || !document.getElementById("create-outcome")) return;
+        try {
+            const notification = await window.S3NTApi.getTaskNotification(taskId);
+            if (seq !== renderSeq) return;
+            outcome.hidden = false;
+            outcome.textContent = outcomeLabel(notification);
+            if (notification?.status && OUTCOME_TEXT[notification.status]) {
+                refreshOutcome.hidden = true;
+                return;
+            }
+        } catch (error) {
+            if (handleSessionError(error)) return;
+            if (seq !== renderSeq) return;
+            // Keep "Notification processing" until sent/skipped/failed/unknown.
+            outcome.hidden = false;
+            outcome.textContent = "Notification processing";
+        }
+        if (Date.now() >= deadline) {
+            refreshOutcome.hidden = false;
+            return;
+        }
+        createPollTimer = setTimeout(() => pollOutcome(taskId, deadline, seq), POLL_MS);
+    }
+
+    function startOutcomePoll(taskId) {
+        stopCreatePoll();
+        refreshOutcome.dataset.taskId = taskId;
+        outcome.hidden = false;
+        outcome.textContent = "Notification processing";
+        refreshOutcome.hidden = true;
+        pollOutcome(taskId, Date.now() + POLL_FOR_MS, renderSeq);
+    }
+
+    // Same body every time. 503 EVENT_PUBLISH_FAILED: 3 extra POSTs, then the button.
+    async function postImmutableTask() {
+        let lastError;
+        const tries = 1 + PUBLISH_AUTO_RETRIES;
+        for (let i = 0; i < tries; i += 1) {
+            try {
+                return await window.S3NTApi.createTask(pendingCreate);
+            } catch (error) {
+                lastError = error;
+                if (!window.S3NTApi.isPublishFailed(error) || i === tries - 1) throw error;
+                status.textContent = "Task saved. Retrying email notification…";
+                await wait(1000);
+            }
+        }
+        throw lastError;
+    }
+
+    async function submitCreate() {
+        retryPublish.hidden = true;
+        refreshOutcome.hidden = true;
+        outcome.hidden = true;
+        const submit = form.querySelector("button[type=submit]");
+        submit.disabled = true;
+        retryPublish.disabled = true;
+        try {
+            const created = await postImmutableTask();
+            status.textContent = "Task saved. Email status may appear a little later.";
+            const taskId = created?.task?.taskId || pendingCreate.taskId;
+            pendingCreate = null;
+            form.reset();
+            document.getElementById("task-assignee").value = currentUser.userId;
+            updateCount();
+            startOutcomePoll(taskId);
+        } catch (error) {
+            if (handleSessionError(error)) return;
+            if (error.status === 409) {
+                status.textContent = "That task ID already exists with different data.";
+            } else if (window.S3NTApi.isPublishFailed(error)) {
+                status.textContent = "Task saved, but the email notification did not start. Retry uses the same task.";
+                retryPublish.hidden = false;
+            } else {
+                status.textContent = error.message || "Unable to create task.";
+            }
+        } finally {
+            submit.disabled = false;
+            retryPublish.disabled = false;
+        }
+    }
+
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const title = form.title.value;
@@ -275,22 +390,16 @@ function bindCreateForm(assignees) {
             && pendingCreate.description === text
             && pendingCreate.assigneeId === assigneeId;
         if (!same) pendingCreate = { taskId: crypto.randomUUID(), title, description: text, assigneeId };
-        const submit = form.querySelector("button[type=submit]");
-        submit.disabled = true;
-        try {
-            await window.S3NTApi.createTask(pendingCreate);
-            status.textContent = "Task saved. Email status may appear a little later.";
-            pendingCreate = null;
-            form.reset();
-            document.getElementById("task-assignee").value = currentUser.userId;
-            updateCount();
-        } catch (error) {
-            if (handleSessionError(error)) return;
-            if (error.status === 409) status.textContent = "That task ID already exists with different data.";
-            else status.textContent = error.message || "Unable to create task.";
-        } finally {
-            submit.disabled = false;
-        }
+        await submitCreate();
+    });
+    retryPublish.addEventListener("click", async () => {
+        if (!pendingCreate) return;
+        await submitCreate();
+    });
+    refreshOutcome.addEventListener("click", () => {
+        const taskId = refreshOutcome.dataset.taskId;
+        if (!taskId) return;
+        startOutcomePoll(taskId);
     });
 }
 
@@ -324,6 +433,7 @@ async function refreshNames() {
 
 async function loadRoute(route, append = false) {
     const seq = ++renderSeq;
+    stopCreatePoll();
     // append=true is Load more; keep what we already have.
     const content = document.getElementById("app-content");
     if (!append) {
