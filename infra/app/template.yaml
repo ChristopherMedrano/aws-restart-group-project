@@ -6,9 +6,16 @@ Parameters:
   LocalOrigin:
     Type: String
     Default: http://localhost:5173
+  DeployedOrigin:
+    Type: String
+    Default: ""
+    Description: CloudFront origin https://dxxxx.cloudfront.net with no trailing slash. Empty until s3nt-web exists.
   SesFromEmail:
     Type: String
     Description: "Verified SES From address in us-east-2. In sandbox, verify each recipient too."
+
+Conditions:
+  HasDeployedOrigin: !Not [!Equals [!Ref DeployedOrigin, ""]]
 
 Globals:
   Function:
@@ -219,10 +226,16 @@ Resources:
         - shared-task-api/access
       SupportedIdentityProviders:
         - COGNITO
-      CallbackURLs:
-        - !Sub "${LocalOrigin}/callback"
-      LogoutURLs:
-        - !Sub "${LocalOrigin}/"
+      CallbackURLs: !If
+        - HasDeployedOrigin
+        - - !Sub "${LocalOrigin}/callback"
+          - !Sub "${DeployedOrigin}/callback"
+        - - !Sub "${LocalOrigin}/callback"
+      LogoutURLs: !If
+        - HasDeployedOrigin
+        - - !Sub "${LocalOrigin}/"
+          - !Sub "${DeployedOrigin}/"
+        - - !Sub "${LocalOrigin}/"
 
   HttpApi:
     Type: AWS::Serverless::HttpApi
@@ -237,8 +250,11 @@ Resources:
               audience:
                 - !Ref UserPoolClient
       CorsConfiguration:
-        AllowOrigins:
-          - !Ref LocalOrigin
+        AllowOrigins: !If
+          - HasDeployedOrigin
+          - - !Ref LocalOrigin
+            - !Ref DeployedOrigin
+          - - !Ref LocalOrigin
         AllowMethods:
           - GET
           - POST

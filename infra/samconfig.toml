@@ -9,6 +9,9 @@ region = "us-east-2"
 [app.global.parameters]
 region = "us-east-2"
 
+[web.global.parameters]
+region = "us-east-2"
+
 [bootstrap.deploy.parameters]
 stack_name = "s3nt-bootstrap"
 template_file = "bootstrap/template.yaml"
@@ -23,5 +26,12 @@ template_file = "app/template.yaml"
 stack_name = "s3nt-app"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
+s3_bucket = "s3nt-bootstrap-artifactbucket-agk6tbwghk9m"
+role_arn = "arn:aws:iam::190285489911:role/s3nt-shared-dev-cfn-execution"
+
+[web.deploy.parameters]
+stack_name = "s3nt-web"
+template_file = "web/template.yaml"
+confirm_changeset = true
 s3_bucket = "s3nt-bootstrap-artifactbucket-agk6tbwghk9m"
 role_arn = "arn:aws:iam::190285489911:role/s3nt-shared-dev-cfn-execution"
