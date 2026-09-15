@@ -207,6 +207,8 @@ class CreateTaskTests(unittest.TestCase):
             patch.object(lambda_function, "_users_table", return_value=users),
             patch.object(lambda_function, "_tasks_table", return_value=tasks),
             patch.object(lambda_function, "_now_iso", return_value="2026-09-13T12:00:00Z"),
+            patch.object(lambda_function, "_sns") as sns,
+            patch.dict("os.environ", {"ASSIGNMENT_TOPIC_ARN": "arn:aws:sns:us-east-2:123:s3nt-app-assignment"}),
         ):
             result = lambda_function.lambda_handler(
                 api_event(route_key="POST /tasks", body=task_body()), None
@@ -224,6 +226,11 @@ class CreateTaskTests(unittest.TestCase):
         self.assertEqual(item["notificationPublishState"], "unpublished")
         self.assertEqual(item["createdSortKey"], f"2026-09-13T12:00:00Z#{TASK_ID}")
         self.assertNotIn("completedAt", item)
+        sns.return_value.publish.assert_called_once()
+        message = json.loads(sns.return_value.publish.call_args.kwargs["Message"])
+        self.assertEqual(message["eventType"], "task.assigned")
+        self.assertEqual(message["taskId"], TASK_ID)
+        tasks.update_item.assert_called_once()
 
     def test_returns_existing_task_on_identical_retry(self):
         users = unittest.mock.Mock()
@@ -236,7 +243,7 @@ class CreateTaskTests(unittest.TestCase):
             "status": "open",
             "createdAt": "2026-09-13T12:00:00Z",
             "createdSortKey": f"2026-09-13T12:00:00Z#{TASK_ID}",
-            "notificationPublishState": "unpublished",
+            "notificationPublishState": "published",
         }
         tasks = unittest.mock.Mock()
         tasks.put_item.side_effect = ClientError(

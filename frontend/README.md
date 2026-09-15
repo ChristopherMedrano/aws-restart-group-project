@@ -25,8 +25,7 @@ tokens.
 - Calls the Task API with the Cognito access token: profile (`GET`/`PATCH /me`),
   assignees, task create/list/complete, and notification reads.
 - Does not use sample data or browser task storage. Notification history is
-  empty until the Notification Lambda writes. POST `/tasks` does not send email
-  yet.
+  empty until the Notification Lambda writes.
 
 ## Files
 

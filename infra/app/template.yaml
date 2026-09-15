@@ -1,11 +1,14 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: "S3NT shared-dev app stack (Task API routes; no SNS)"
+Description: "S3NT shared-dev app stack (Task API, assignment SNS, notification SES)"
 
 Parameters:
   LocalOrigin:
     Type: String
     Default: http://localhost:5173
+  SesFromEmail:
+    Type: String
+    Description: "Verified SES From address in us-east-2. In sandbox, verify each recipient too."
 
 Globals:
   Function:
@@ -132,6 +135,32 @@ Resources:
         - Key: ManagedBy
           Value: SAM
 
+  AssignmentTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: s3nt-app-assignment
+      DisplayName: s3nt-app-assignment
+      Tags:
+        - Key: Project
+          Value: S3NT
+        - Key: Environment
+          Value: shared-dev
+        - Key: ManagedBy
+          Value: SAM
+
+  NotificationInvokeFailureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: s3nt-app-notification-invoke-failure
+      MessageRetentionPeriod: 1209600
+      Tags:
+        - Key: Project
+          Value: S3NT
+        - Key: Environment
+          Value: shared-dev
+        - Key: ManagedBy
+          Value: SAM
+
   UserPool:
     Type: AWS::Cognito::UserPool
     DeletionPolicy: Retain
@@ -234,6 +263,7 @@ Resources:
         Variables:
           TASKS_TABLE: !Ref TasksTable
           NOTIFICATIONS_TABLE: !Ref NotificationsTable
+          ASSIGNMENT_TOPIC_ARN: !Ref AssignmentTopic
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
@@ -241,6 +271,8 @@ Resources:
             TableName: !Ref TasksTable
         - DynamoDBReadPolicy:
             TableName: !Ref NotificationsTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AssignmentTopic.TopicName
       Events:
         GetMe:
           Type: HttpApi
@@ -350,6 +382,41 @@ Resources:
       FunctionName: s3nt-app-notification
       CodeUri: ../../backend/notification/
       Handler: lambda_function.lambda_handler
+      Timeout: 15
+      Environment:
+        Variables:
+          TASKS_TABLE: !Ref TasksTable
+          NOTIFICATIONS_TABLE: !Ref NotificationsTable
+          SES_FROM_EMAIL: !Ref SesFromEmail
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref TasksTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotificationsTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt NotificationInvokeFailureQueue.QueueName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  ses:FromAddress: !Ref SesFromEmail
+      Events:
+        Assignment:
+          Type: SNS
+          Properties:
+            Topic: !Ref AssignmentTopic
+      EventInvokeConfig:
+        MaximumRetryAttempts: 2
+        DestinationConfig:
+          OnFailure:
+            Type: SQS
+            Destination: !GetAtt NotificationInvokeFailureQueue.Arn
 
 Outputs:
   ApiUrl:

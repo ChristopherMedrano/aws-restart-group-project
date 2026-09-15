@@ -59,6 +59,10 @@ def _tasks_table():
     return boto3.resource("dynamodb").Table(os.environ["TASKS_TABLE"])
 
 
+def _sns():
+    return boto3.client("sns")
+
+
 def _notifications_table():
     return boto3.resource("dynamodb").Table(os.environ["NOTIFICATIONS_TABLE"])
 
@@ -238,8 +242,43 @@ def get_assignees(user_id):
     return response(200, {"assignees": assignees})
 
 
+def assignment_event(item):
+    return json.dumps(
+        {
+            "eventType": "task.assigned",
+            "schemaVersion": 1,
+            "taskId": item["taskId"],
+            "assigneeId": item["assigneeId"],
+            "occurredAt": item["createdAt"],
+        },
+        separators=(",", ":"),
+    )
+
+
+def publish_assignment(item):
+    """Publish task.assigned. Return a 503 response if SNS cannot be confirmed."""
+    try:
+        _sns().publish(
+            TopicArn=os.environ["ASSIGNMENT_TOPIC_ARN"],
+            Message=assignment_event(item),
+        )
+        _tasks_table().update_item(
+            Key={"taskId": item["taskId"]},
+            UpdateExpression="SET notificationPublishState = :p",
+            ConditionExpression="notificationPublishState = :u",
+            ExpressionAttributeValues={":p": "published", ":u": "unpublished"},
+        )
+    except (ClientError, KeyError):
+        LOGGER.exception("Unable to publish assignment")
+        return response(
+            503,
+            {"message": "Unable to publish assignment", "code": "EVENT_PUBLISH_FAILED"},
+        )
+    return None
+
+
 def create_task(event, user_id):
-    """Create a task or return the existing identical retry. Do not publish SNS."""
+    """Create a task, then publish task.assigned. Keep the task if publish fails."""
     LOGGER.info("POST /tasks requested")
     body = parse_json_object(event)
     if body is None:
@@ -306,9 +345,19 @@ def create_task(event, user_id):
         if not same:
             LOGGER.info("POST /tasks conflict")
             return response(409, {"message": "Task conflict"})
-        LOGGER.info("POST /tasks identical retry")
+        if existing.get("notificationPublishState") == "published":
+            LOGGER.info("POST /tasks identical retry")
+            return response(200, {"task": task_from_item(existing)})
+        publish_error = publish_assignment(existing)
+        if publish_error:
+            return publish_error
+        LOGGER.info("POST /tasks identical retry published")
         return response(200, {"task": task_from_item(existing)})
 
+    publish_error = publish_assignment(item)
+    if publish_error:
+        LOGGER.info("POST /tasks saved unpublished")
+        return publish_error
     LOGGER.info("POST /tasks created")
     return response(201, {"task": task_from_item(item)})
 
