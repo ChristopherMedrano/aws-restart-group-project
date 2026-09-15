@@ -18,17 +18,39 @@ Shared-dev code changes go only through `sam deploy` and a reviewed change set.
 
 ## Login
 
-Use `aws login` as the named IAM user (not root). Confirm account with
-`aws sts get-caller-identity`. For app deploy, use a profile that assumes
-`s3nt-shared-dev-app-deployer`.
+`aws login` sessions expire. After login, run `aws sts get-caller-identity`
+and check **Account `190285489911`**. If the CLI asks to overwrite that root
+session with account `354551173586`, answer **n** and finish login for
+`190285489911`.
+
+| Work | Profile | `sts` Arn contains |
+| --- | --- | --- |
+| Bootstrap | `aws-restart-root` | `190285489911:root` |
+| App or web deploy, SPA upload | `s3nt-app-deployer` | `assumed-role/s3nt-shared-dev-app-deployer` |
+
+Do not `sam deploy --config-env web` or `app` as root. `samconfig` still uses
+the CloudFormation execution role for resource APIs.
+
+`export AWS_PROFILE=...` stays for the rest of that terminal. `aws login
+--profile NAME` only refreshes that named profile; it does **not** change
+`AWS_PROFILE`. Before every `sam deploy`, run `aws sts get-caller-identity`
+with no extra flags and read the Arn. If bootstrap shows
+`assumed-role/s3nt-shared-dev-app-deployer`, SAM will try to create
+`aws-sam-cli-managed-default` and fail. Switch with
+`export AWS_PROFILE=aws-restart-root` (after `aws login --profile
+aws-restart-root`). `chris-aws` cannot update `s3nt-bootstrap`.
 
 ## Bootstrap (root)
 
 No `sam build`. Pass `TrustedPrincipalArns` (IAM user ARNs that may assume the
-deployer). It is not in `samconfig`.
+deployer). It is not in `samconfig`. **Update bootstrap before the first
+`s3nt-web` deploy** so the execution role can call CloudFront.
 
 ```bash
+export AWS_PROFILE=aws-restart-root
 export AWS_DEFAULT_REGION=us-east-2
+aws sts get-caller-identity
+# Arn must be arn:aws:iam::190285489911:root
 sam deploy --config-env bootstrap --config-file samconfig.toml \
   --parameter-overrides TrustedPrincipalArns=arn:aws:iam::ACCOUNT:user/YOUR_USER
 ```
@@ -44,6 +66,7 @@ deploy.
 ## App (deployer)
 
 ```bash
+export AWS_PROFILE=s3nt-app-deployer
 export AWS_DEFAULT_REGION=us-east-2
 sam build --config-env app
 aws sts get-caller-identity
@@ -65,15 +88,23 @@ deployer. Fix that role, then update bootstrap as root.
 
 ## Web (deployer)
 
-No `sam build`. Bootstrap IAM must already allow `stack/s3nt-web`. Default
-hostname is `*.cloudfront.net`.
+No `sam build`. Bootstrap must already be updated (`ManageS3ntWeb` on the
+execution role). Default hostname is `*.cloudfront.net`. Commands run from
+`infra/`. Do not upload until the stack is `CREATE_COMPLETE`.
 
 ```bash
+export AWS_PROFILE=s3nt-app-deployer
 export AWS_DEFAULT_REGION=us-east-2
 aws sts get-caller-identity
 sam deploy --config-env web --config-file samconfig.toml
 ./web/upload-spa.sh
 ```
+
+If CloudFront OAC returns AccessDenied on `s3nt-shared-dev-cfn-execution`,
+bootstrap was not updated. If `DescribeStacks` on `s3nt-web` is denied for the
+deployer, same cause. After a `ROLLBACK_COMPLETE` stack, delete `s3nt-web`
+(root can), remove empty `s3nt-web-spa-ACCOUNT` if `BucketAlreadyExists`, then
+deploy web as the deployer.
 
 Then app-deploy with `DeployedOrigin` set to the `SpaOrigin` output. Review
 each change set. Do not `sam sync`.
