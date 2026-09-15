@@ -44,11 +44,14 @@ Do not set `resolve_s3 = true` on app deploy.
 export AWS_DEFAULT_REGION=us-east-2
 sam build --config-env app
 aws sts get-caller-identity
-sam deploy --config-env app --config-file samconfig.toml
+sam deploy --config-env app --config-file samconfig.toml \
+  --parameter-overrides SesFromEmail=verified@example.test
 ```
 
-Caller must be the deployer role. App deploy must not set `template_file`
-(uses `.aws-sam/build`). Rebuild after Lambda or `app/template.yaml` changes.
+Pass `SesFromEmail` (verified in `us-east-2`). In SES sandbox, recipients must
+also be verified. Review the change set. Caller must be the deployer role.
+App deploy must not set `template_file` (uses `.aws-sam/build`). Rebuild after
+Lambda or `app/template.yaml` changes.
 If the change set is empty, do not execute it. Do not `sam sync` against
 shared-dev.
 

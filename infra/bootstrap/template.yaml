@@ -163,7 +163,40 @@ Resources:
                   - lambda:AddPermission
                   - lambda:RemovePermission
                   - lambda:InvokeFunction
+                  - lambda:PutFunctionEventInvokeConfig
+                  - lambda:GetFunctionEventInvokeConfig
+                  - lambda:DeleteFunctionEventInvokeConfig
                 Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:s3nt-app-*"
+              - Sid: SnsTopics
+                Effect: Allow
+                Action:
+                  - sns:CreateTopic
+                  - sns:DeleteTopic
+                  - sns:GetTopicAttributes
+                  - sns:SetTopicAttributes
+                  - sns:Subscribe
+                  - sns:Unsubscribe
+                  - sns:ListSubscriptionsByTopic
+                  - sns:GetSubscriptionAttributes
+                  - sns:SetSubscriptionAttributes
+                  - sns:TagResource
+                  - sns:UntagResource
+                  - sns:ListTagsForResource
+                Resource:
+                  - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:s3nt-app-*"
+                  - !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:s3nt-app-*:*"
+              - Sid: SqsQueues
+                Effect: Allow
+                Action:
+                  - sqs:CreateQueue
+                  - sqs:DeleteQueue
+                  - sqs:GetQueueAttributes
+                  - sqs:SetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:TagQueue
+                  - sqs:UntagQueue
+                  - sqs:ListQueueTags
+                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:s3nt-app-*"
               - Sid: CognitoCreatePool
                 Effect: Allow
                 Action: cognito-idp:CreateUserPool

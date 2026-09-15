@@ -26,14 +26,15 @@ Lambda; the handler reads the caller only from the validated JWT `sub` claim.
 | `GET /me` | Implemented. |
 | `PATCH /me` | Implemented. |
 | `GET /assignees` | Implemented. |
-| `POST /tasks` | Implemented; persists the task and does not publish SNS. |
+| `POST /tasks` | Implemented; publishes `task.assigned` after the task is saved. `503 EVENT_PUBLISH_FAILED` if SNS is not confirmed. |
 | `GET /tasks` | Implemented (`role=assigned` or `role=created`). |
 | `PATCH /tasks/{taskId}/status` | Implemented. |
 | `GET /tasks/{taskId}/notification` | Implemented; returns `null` until Notification Lambda writes. |
 | `GET /notifications` | Implemented; empty until Notification Lambda writes. |
 
 The Task API Lambda implements the profile, assignee, and task routes above.
-Notification send remains a stub Lambda.
+Notification send is handled by the Notification Lambda (SNS `task.assigned`,
+one SES attempt).
 
 The complete API contract and implementation order are in
 [`docs/specs/S3NT_BACKEND_SPEC.md`](../docs/specs/S3NT_BACKEND_SPEC.md).
