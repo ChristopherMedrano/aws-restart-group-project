@@ -8,4 +8,5 @@ _planning/
 !requirements.txt
 !requirements-dev.txt
 .aws-sam/
+infra/local-env.json
 frontend/config.local.js

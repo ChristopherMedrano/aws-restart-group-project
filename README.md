@@ -95,4 +95,6 @@ decisions, and final review.
 
 [working agreement](docs/project/working-agreement.md),
 [AWS account baseline](docs/project/account-baseline.md),
-[approved architecture](docs/architecture/architecture.md), [GitHub issue tracker](https://github.com/ChristopherMedrano/aws-restart-group-project/issues).
+[approved architecture](docs/architecture/architecture.md),
+[local SAM setup](infra/README.md#run-the-api-locally-with-sam), and
+[GitHub issue tracker](https://github.com/ChristopherMedrano/aws-restart-group-project/issues).

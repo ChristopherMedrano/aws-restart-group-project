@@ -109,6 +109,86 @@ deploy web as the deployer.
 Then app-deploy with `DeployedOrigin` set to the `SpaOrigin` output. Review
 each change set. Do not `sam sync`.
 
+## Run the API locally with SAM
+
+Use this after pulling `master` to run the Task API code in Docker without
+deploying a stack. You need Docker Desktop (or a running Docker daemon), AWS
+SAM CLI, and an AWS profile with access to the shared-dev DynamoDB tables and
+SNS topic. The local function uses those **real shared-dev resources**; it
+does not start local DynamoDB or SNS.
+
+From the repository root, update your checkout and verify the tools:
+
+```bash
+git switch master
+git pull --ff-only origin master
+cd infra
+sam --version
+docker version
+```
+
+Sign in with your own permitted profile and use the project Region. Do not add
+profile names or credentials to tracked files.
+
+```bash
+aws login --profile <your-profile>
+aws sts get-caller-identity --profile <your-profile>
+```
+
+Get the physical names of the deployed resources, then create
+`infra/local-env.json` with the values. The file is gitignored.
+
+```bash
+aws cloudformation list-stack-resources \
+  --stack-name s3nt-app \
+  --region us-east-2 \
+  --profile <your-profile> \
+  --query 'StackResourceSummaries[?LogicalResourceId==`UsersTable` || LogicalResourceId==`TasksTable` || LogicalResourceId==`NotificationsTable` || LogicalResourceId==`AssignmentTopic`].[LogicalResourceId,PhysicalResourceId]' \
+  --output table
+```
+
+Use the resulting values in this file; for an SNS topic, the physical ID is
+its ARN.
+
+```json
+{
+  "TaskApiFunction": {
+    "USERS_TABLE": "<UsersTable physical ID>",
+    "TASKS_TABLE": "<TasksTable physical ID>",
+    "NOTIFICATIONS_TABLE": "<NotificationsTable physical ID>",
+    "ASSIGNMENT_TOPIC_ARN": "<AssignmentTopic ARN>"
+  }
+}
+```
+
+Build and start the local HTTP API:
+
+```bash
+sam validate --template app/template.yaml
+sam build --template-file app/template.yaml
+sam local start-api \
+  --template .aws-sam/build/template.yaml \
+  --env-vars local-env.json \
+  --profile <your-profile> \
+  --region us-east-2 \
+  --parameter-overrides SesFromEmail=local@example.invalid
+```
+
+SAM listens on `http://127.0.0.1:3000`. Stop it with `Ctrl+C`. Run the backend
+unit tests before making requests:
+
+```bash
+cd ..
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r backend/requirements-dev.txt
+python -m unittest discover -s backend/task-api/tests -v
+```
+
+Do not use local `POST /tasks` against shared-dev without team coordination:
+it writes a real task, publishes to SNS, and can send an email. Test deployed
+API Gateway separately for Cognito JWT enforcement and production CORS.
+
 ## Local frontend
 
 From repo `frontend/`:
