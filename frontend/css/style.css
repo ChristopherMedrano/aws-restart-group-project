@@ -982,19 +982,16 @@ a {
 }
 
 
-/* =========================================================
-   RESPONSIVE — TABLET
-========================================================= */
+/* =========================
+   RESPONSIVE
+   ========================= */
 
 @media (max-width: 768px) {
     .navbar-container {
         padding: 14px 18px;
     }
 
-    .dashboard-container {
-        padding: 35px 18px 50px;
-    }
-
+    .dashboard-container,
     .settings-container {
         padding: 35px 18px 50px;
     }
@@ -1004,7 +1001,7 @@ a {
     }
 
     .task-card {
-        flex-direction: column;
+        padding: 20px;
     }
 
     .task-card-actions {
@@ -1012,41 +1009,178 @@ a {
         align-items: center;
         justify-content: space-between;
     }
+
+    .notification-setting {
+        gap: 18px;
+    }
 }
 
-
-/* =========================================================
-   RESPONSIVE — MOBILE
-========================================================= */
-
 @media (max-width: 600px) {
+    /* Auth */
     .auth-container {
-        padding: 18px;
+        padding: 16px;
     }
 
     .auth-card {
-        padding: 28px 22px;
+        padding: 28px 20px;
+        border-radius: 10px;
     }
 
+    .auth-card h1 {
+        font-size: 24px;
+    }
+
+
+    /* Navbar */
     .navbar-container {
         padding: 12px 16px;
+        gap: 10px;
     }
 
     .nav-links {
         gap: 2px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
+    .nav-link,
+    .logout-button {
+        padding: 7px 9px;
+        font-size: 13px;
+    }
+
+
+    /* Dashboard */
     .dashboard-container,
     .settings-container {
-        padding: 30px 18px 45px;
+        padding: 30px 16px 45px;
     }
 
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+
+    .dashboard-header h1,
+    .settings-header h1 {
+        font-size: 27px;
+    }
+
+    .dashboard-header p,
+    .settings-header p {
+        font-size: 15px;
+    }
+
+
+    /* Tasks */
+    .section-header h2 {
+        font-size: 21px;
+    }
+
+    .task-filters {
+        gap: 6px;
+    }
+
+    .filter-button {
+        padding: 8px 11px;
+        font-size: 13px;
+    }
+
+    .task-card {
+        padding: 18px;
+        border-radius: 9px;
+    }
+
+    .task-card-header {
+        padding-right: 35px;
+    }
+
+    .task-card h3 {
+        font-size: 18px;
+    }
+
+    .task-description {
+        font-size: 14px;
+    }
+
+    .task-details {
+        flex-wrap: wrap;
+        font-size: 13px;
+    }
+
+    .task-card-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .task-card-actions .status-badge,
+    .task-card-actions .complete-button {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .complete-button {
+        padding: 9px 14px;
+    }
+
+    .task-menu {
+        top: 14px;
+        right: 14px;
+    }
+
+
+    /* Modal */
+    .modal {
+        padding: 14px;
+    }
+
+    .modal-content {
+        width: 100%;
+        max-width: none;
+        max-height: 92vh;
+        padding: 22px 18px;
+        border-radius: 10px;
+    }
+
+    .modal-header {
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    .modal-header h2 {
+        font-size: 21px;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .modal-actions button {
+        width: 100%;
+    }
+
+
+    /* Settings */
     .settings-card {
-        padding: 22px;
+        padding: 20px;
     }
 
     .notification-setting {
+        flex-direction: column;
         align-items: flex-start;
+        gap: 16px;
+        padding: 22px 0;
+    }
+
+    .toggle-container {
+        width: 100%;
+        justify-content: space-between;
     }
 
     .settings-actions {
@@ -1057,72 +1191,119 @@ a {
         width: 100%;
     }
 
-    .task-card {
-        padding: 20px;
+    .settings-message {
+        text-align: left;
     }
 
-    .modal-content {
-        padding: 24px 20px;
+
+    /* Messages */
+    .error-message,
+    .success-message {
+        width: calc(100% - 32px);
+        max-width: 400px;
+        text-align: center;
     }
 }
 
-
-/* =========================================================
-   ACCESSIBILITY & KEYBOARD FOCUS STYLES
-========================================================= */
-
-.primary-button:focus-visible,
-.secondary-button:focus-visible,
-.filter-button:focus-visible,
-.complete-button:focus-visible,
-.nav-link:focus-visible,
-.logout-button:focus-visible {
-    outline: 2px solid #2563EB;
-    outline-offset: 2px;
-}
-
-
-/* =========================================================
-   RESPONSIVE — SMALL MOBILE
-========================================================= */
 
 @media (max-width: 480px) {
+    /* Very small screens */
+
+    .navbar-container {
+        padding: 10px 12px;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
     .logo {
         font-size: 17px;
+        flex-shrink: 0;
+    }
+
+    .nav-links {
+        gap: 1px;
+        flex: 1;
+        min-width: 0;
+        justify-content: flex-end;
     }
 
     .nav-link,
     .logout-button {
-        padding: 7px 9px;
-        font-size: 13px;
+        padding: 6px 7px;
+        font-size: 12px;
+    }
+
+
+    /* Dashboard */
+    .dashboard-container,
+    .settings-container {
+        padding: 25px 14px 40px;
     }
 
     .dashboard-header h1,
     .settings-header h1 {
-        font-size: 27px;
+        font-size: 25px;
     }
 
     .section-header h2 {
-        font-size: 21px;
+        font-size: 20px;
+    }
+
+
+    /* Task filters */
+    .task-filters {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        width: 100%;
+    }
+
+    .filter-button {
+        width: 100%;
+    }
+
+
+    /* Task cards */
+    .task-card {
+        padding: 16px;
     }
 
     .task-card-header {
-        gap: 10px;
+        padding-right: 32px;
     }
 
-    .task-card-actions {
-        align-items: stretch;
+    .task-card h3 {
+        font-size: 17px;
     }
 
-    .complete-button {
-        flex: 1;
+    .task-description {
+        font-size: 14px;
     }
 
-    .modal-actions {
-        flex-direction: column-reverse;
+    .task-details {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
     }
 
-    .modal-actions button {
-        width: 100%;
+
+    /* Settings */
+    .settings-card {
+        padding: 18px;
+    }
+
+
+    /* Auth */
+    .auth-card {
+        padding: 24px 18px;
+    }
+
+
+    /* Modal */
+    .modal {
+        padding: 10px;
+    }
+
+    .modal-content {
+        padding: 20px 16px;
     }
 }
